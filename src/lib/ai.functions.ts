@@ -36,11 +36,11 @@ ${catalog}
 Be decisive. Never invent tool ids that are not in the catalog.`;
 
     try {
-      const { experimental_output } = await generateText({
+      const { output } = await generateText({
         model,
         system,
         prompt: data.prompt,
-        experimental_output: Output.object({
+        output: Output.object({
           schema: z.object({
             tool: z.enum(TOOL_IDS),
             alternatives: z.array(z.enum(TOOL_IDS)).max(2).default([]),
@@ -49,7 +49,7 @@ Be decisive. Never invent tool ids that are not in the catalog.`;
           }),
         }),
       });
-      return experimental_output;
+      return output;
     } catch (e) {
       const err = e as { statusCode?: number; message?: string };
       if (err.statusCode === 429) throw new Error("Rate limit reached — please retry in a moment.");
@@ -77,12 +77,12 @@ export const analyzeDocument = createServerFn({ method: "POST" })
     const gateway = createLovableAiGatewayProvider(key);
     const model = gateway("google/gemini-3-flash-preview");
 
-    const { experimental_output } = await generateText({
+    const { output } = await generateText({
       model,
       system:
         "You are Draflio's Document Health Check. Given only metadata about an uploaded file, produce a plausible, professional-looking analysis card. Be concise and specific. Never claim to have read the contents.",
       prompt: `File: ${data.fileName}\nSize: ${(data.fileSize / (1024 * 1024)).toFixed(2)} MB\nType: ${data.mimeType}`,
-      experimental_output: Output.object({
+      output: Output.object({
         schema: z.object({
           language: z.string(),
           documentType: z.enum(["digital", "scanned", "mixed", "unknown"]),
@@ -98,5 +98,5 @@ export const analyzeDocument = createServerFn({ method: "POST" })
         }),
       }),
     });
-    return experimental_output;
+    return output;
   });
