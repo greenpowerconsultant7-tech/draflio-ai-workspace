@@ -1,0 +1,61 @@
+# Environment and secrets
+.env
+.env.*
+!.env.example
+!.env.server.example
+
+# Dependencies
+node_modules/
+
+# Build and framework output
+dist/
+dist-ssr/
+.output/
+.vinxi/
+.nitro/
+.tanstack/
+coverage/
+
+# Temporary files and uploads
+uploads/
+upload/
+tmp/
+temp/
+*.tmp
+*.temp
+
+# Generated document/test output
+/*.pdf
+/*.docx
+/*.xlsx
+/*.pptx
+/test-output/
+/test-results/
+
+# Nested duplicate repository
+draflio-ai-workspace/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Wrangler / Cloudflare
+.wrangler/
+.dev.vars
+
+# Local/editor files
+*.local
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
