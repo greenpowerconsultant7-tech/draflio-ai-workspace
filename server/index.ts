@@ -86,6 +86,10 @@ import {
 } from "./http/pdfResponse";
 
 import {
+  sendAttachmentResponse,
+} from "./http/attachmentResponse";
+
+import {
   cancelOcrJob,
   createOcrJob,
   getOcrJobPublicData,
@@ -1066,6 +1070,101 @@ app.post(
   )
 );
 
+app.post(
+  "/api/conversion-jobs/pdf-to-word",
+  conversionRateLimiter,
+  upload.single("file"),
+  asyncHandler(
+    async (
+      request,
+      response
+    ) => {
+      const file =
+        validatePdfFile(
+          request.file,
+          {
+            fieldName:
+              "file",
+
+            maximumSizeBytes:
+              100 *
+              1024 *
+              1024,
+          }
+        );
+
+      const uploadedBasename =
+        basename(
+          file.originalname.replace(
+            /\\/g,
+            "/"
+          )
+        )
+          .replace(
+            /[\u0000-\u001f\u007f]/g,
+            ""
+          ) ||
+        "document.pdf";
+
+      const documentName =
+        uploadedBasename.replace(
+          /\.pdf$/i,
+          ""
+        ) ||
+        "document";
+
+      const outputFilename =
+        `${documentName}.docx`;
+
+      const job =
+        createConversionJob({
+          operation:
+            "pdf-to-word",
+
+          originalFilename:
+            uploadedBasename,
+
+          outputFilename,
+
+          inputMediaType:
+            "application/pdf",
+
+          outputMediaType:
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+
+          inputBuffer:
+            file.buffer,
+        });
+
+      startConversionJob(
+        job.id
+      );
+
+      const publicJob =
+        getConversionJobPublicData(
+          job.id
+        );
+
+      if (
+        !publicJob ||
+        publicJob.operation !==
+          "pdf-to-word"
+      ) {
+        throw notFound(
+          "The PDF-to-Word conversion job could not be created."
+        );
+      }
+
+      response
+        .status(202)
+        .json({
+          job:
+            publicJob,
+        });
+    }
+  )
+);
+
 app.get(
   "/api/conversion-jobs/:jobId",
   asyncHandler(
@@ -1180,23 +1279,61 @@ app.get(
         );
       }
 
-      if (
-        job.operation !==
+      const resultTypes = {
+        "word-to-pdf": {
+          mediaType:
+            "application/pdf",
+          extension:
+            ".pdf",
+        },
+
+        "pdf-to-word": {
+          mediaType:
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+          extension:
+            ".docx",
+        },
+      } as const;
+
+      const resultType =
+        job.operation ===
           "word-to-pdf" ||
-        result.mediaType !==
-          "application/pdf"
-      ) {
+        job.operation ===
+          "pdf-to-word"
+          ? resultTypes[
+              job.operation
+            ]
+          : undefined;
+
+      if (!resultType) {
         throw conflict(
-          "This conversion result is not available as a PDF."
+          "This conversion operation does not have a supported download result."
         );
       }
 
-      sendPdfResponse(
+      if (
+        job.outputMediaType !==
+          resultType.mediaType ||
+        result.mediaType !==
+        resultType.mediaType
+      ) {
+        throw conflict(
+          "The conversion result media type does not match the requested operation."
+        );
+      }
+
+      sendAttachmentResponse(
         response,
         result.buffer,
         {
           filename:
             result.filename,
+
+          mediaType:
+            resultType.mediaType,
+
+          extension:
+            resultType.extension,
         }
       );
     }

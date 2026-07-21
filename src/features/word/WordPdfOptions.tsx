@@ -246,6 +246,7 @@ export default function WordPdfOptions({
           <label className="flex items-center gap-3 text-white">
             <input
               type="checkbox"
+              disabled
               checked={
                 pdfToWordOptions.preservePageBreaks
               }
@@ -264,6 +265,7 @@ export default function WordPdfOptions({
           <label className="flex items-center gap-3 text-white">
             <input
               type="checkbox"
+              disabled
               checked={
                 pdfToWordOptions.includePageNumbers
               }
@@ -281,10 +283,14 @@ export default function WordPdfOptions({
           </label>
 
           <div className="rounded-xl border border-blue-500/20 bg-blue-950/30 p-4 text-sm text-blue-200">
-            PDF to Word extracts editable
-            text. Scanned PDFs without a text
-            layer require OCR, which will be
-            added through Draflio Smart OCR.
+            Adobe currently controls the
+            resulting Word layout. Preserve
+            page breaks and page headings are
+            not yet supported, and Draflio does
+            not send these disabled values to
+            the conversion service. Scanned
+            PDFs without a text layer require
+            Draflio Smart OCR.
           </div>
         </>
       )}

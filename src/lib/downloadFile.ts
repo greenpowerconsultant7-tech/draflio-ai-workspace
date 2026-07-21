@@ -157,3 +157,23 @@ export function downloadPdf(
     }
   );
 }
+
+export function downloadDocx(
+  data: DownloadableData,
+  filename: string
+) {
+  downloadFile(
+    data,
+    {
+      filename:
+        filename
+          .toLowerCase()
+          .endsWith(".docx")
+          ? filename
+          : `${filename}.docx`,
+
+      mimeType:
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    }
+  );
+}
