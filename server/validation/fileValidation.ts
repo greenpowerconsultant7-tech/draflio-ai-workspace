@@ -37,6 +37,14 @@ const PDF_EXTENSIONS = [
   ".pdf",
 ] as const;
 
+const DOCX_MIME_TYPES = [
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+] as const;
+
+const DOCX_EXTENSIONS = [
+  ".docx",
+] as const;
+
 function normalizeExtension(
   extension: string
 ): string {
@@ -361,6 +369,30 @@ export function validatePdfFile(
   }
 
   return uploadedFile;
+}
+
+export function validateDocxFile(
+  file:
+    | UploadedFile
+    | undefined,
+  options: Omit<
+    FileValidationOptions,
+    | "allowedMimeTypes"
+    | "allowedExtensions"
+  > = {}
+): UploadedFile {
+  return validateUploadedFile(
+    file,
+    {
+      ...options,
+
+      allowedMimeTypes:
+        DOCX_MIME_TYPES,
+
+      allowedExtensions:
+        DOCX_EXTENSIONS,
+    }
+  );
 }
 
 export function validatePdfFiles(

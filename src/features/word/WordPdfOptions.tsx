@@ -102,6 +102,7 @@ export default function WordPdfOptions({
             </label>
 
             <select
+              disabled
               value={
                 wordToPdfOptions.pageSize
               }
@@ -112,7 +113,7 @@ export default function WordPdfOptions({
                       .value as WordPageSize,
                 })
               }
-              className="w-full rounded-xl border border-slate-700 bg-slate-800 p-3 text-white outline-none focus:border-blue-500"
+              className="w-full cursor-not-allowed rounded-xl border border-slate-700 bg-slate-800 p-3 text-slate-500 opacity-70"
             >
               <option value="a4">
                 A4
@@ -130,6 +131,7 @@ export default function WordPdfOptions({
             </label>
 
             <select
+              disabled
               value={
                 wordToPdfOptions.orientation
               }
@@ -140,7 +142,7 @@ export default function WordPdfOptions({
                       .value as WordPageOrientation,
                 })
               }
-              className="w-full rounded-xl border border-slate-700 bg-slate-800 p-3 text-white outline-none focus:border-blue-500"
+              className="w-full cursor-not-allowed rounded-xl border border-slate-700 bg-slate-800 p-3 text-slate-500 opacity-70"
             >
               <option value="portrait">
                 Portrait
@@ -168,6 +170,7 @@ export default function WordPdfOptions({
 
             <input
               type="range"
+              disabled
               min={0}
               max={100}
               step={5}
@@ -181,7 +184,7 @@ export default function WordPdfOptions({
                   ),
                 })
               }
-              className="w-full"
+              className="w-full cursor-not-allowed opacity-50"
             />
           </div>
 
@@ -202,6 +205,7 @@ export default function WordPdfOptions({
 
             <input
               type="range"
+              disabled
               min={0.4}
               max={1}
               step={0.05}
@@ -215,7 +219,7 @@ export default function WordPdfOptions({
                   ),
                 })
               }
-              className="w-full"
+              className="w-full cursor-not-allowed opacity-50"
             />
 
             <p className="mt-2 text-sm text-slate-400">
@@ -225,12 +229,14 @@ export default function WordPdfOptions({
             </p>
           </div>
 
-          <div className="rounded-xl border border-amber-500/20 bg-amber-950/30 p-4 text-sm text-amber-200">
-            Complex Word layouts, unusual
-            fonts, floating images, and
-            advanced tables may not look
-            exactly the same after browser
-            conversion.
+          <div className="rounded-xl border border-blue-500/20 bg-blue-950/30 p-4 text-sm text-blue-200">
+            Page size, orientation, margin,
+            and image-quality controls are
+            currently unavailable. Draflio
+            uses Adobe to preserve the Word
+            document&apos;s existing layout and
+            does not send these disabled
+            values to the conversion service.
           </div>
         </>
       )}

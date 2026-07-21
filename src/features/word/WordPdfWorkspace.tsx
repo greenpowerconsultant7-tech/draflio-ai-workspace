@@ -1,4 +1,5 @@
 import {
+  useEffect,
   useRef,
   useState,
 } from "react";
@@ -8,11 +9,20 @@ import {
   Download,
   FileText,
   FileType2,
+  XCircle,
 } from "lucide-react";
 
 import { UploadZone } from "@/components/draflio/UploadZone";
 
 import { ProgressService } from "@/core/services/ProgressService";
+
+import { useAbortableTask } from "@/hooks/useAbortableTask";
+
+import { getApiErrorMessage } from "@/lib/apiError";
+
+import {
+  downloadPdf as downloadPdfFile,
+} from "@/lib/downloadFile";
 
 import WordPdfOptions from "./WordPdfOptions";
 
@@ -21,9 +31,29 @@ import {
   type PdfToWordOptions,
   type PdfToWordResult,
   type WordPdfMode,
+  type WordProgressStage,
+  type WordProgressUpdate,
   type WordToPdfOptions,
   type WordToPdfResult,
 } from "./WordPdfService";
+
+const wordStageLabels: Record<
+  WordProgressStage,
+  string
+> = {
+  uploading: "Uploading",
+  queued: "Queued",
+  validating: "Validating",
+  authenticating: "Authenticating",
+  "creating-asset": "Creating upload asset",
+  submitting: "Submitting",
+  processing: "Processing",
+  downloading: "Downloading",
+  preparing: "Preparing result",
+  completed: "Completed",
+  failed: "Failed",
+  cancelled: "Cancelled",
+};
 
 const defaultWordToPdfOptions: WordToPdfOptions = {
   pageSize: "a4",
@@ -47,20 +77,6 @@ function formatBytes(bytes: number) {
     1024 /
     1024
   ).toFixed(2)} MB`;
-}
-
-function bytesToArrayBuffer(
-  bytes: Uint8Array
-): ArrayBuffer {
-  const buffer = new ArrayBuffer(
-    bytes.byteLength
-  );
-
-  const view = new Uint8Array(buffer);
-
-  view.set(bytes);
-
-  return buffer;
 }
 
 function downloadBlob(
@@ -87,6 +103,10 @@ function downloadBlob(
 }
 
 export default function WordPdfWorkspace() {
+  const resultSectionRef =
+    useRef<HTMLDivElement | null>(
+      null
+    );
   const [mode, setMode] =
     useState<WordPdfMode>(
       "word-to-pdf"
@@ -123,7 +143,7 @@ export default function WordPdfWorkspace() {
     null
   );
 
-  const [loading, setLoading] =
+  const [pdfToWordLoading, setPdfToWordLoading] =
     useState(false);
 
   const [progress, setProgress] =
@@ -131,6 +151,24 @@ export default function WordPdfWorkspace() {
 
   const [error, setError] =
     useState("");
+
+  const [
+    wordProgressUpdate,
+    setWordProgressUpdate,
+  ] = useState<WordProgressUpdate | null>(
+    null
+  );
+
+  const {
+    run: runWordToPdf,
+    cancel: cancelWordToPdf,
+    isRunning: wordToPdfLoading,
+  } = useAbortableTask<WordToPdfResult>();
+
+  const loading =
+    mode === "word-to-pdf"
+      ? wordToPdfLoading
+      : pdfToWordLoading;
 
   const progressService = useRef(
     new ProgressService()
@@ -140,21 +178,49 @@ export default function WordPdfWorkspace() {
     setWordToPdfResult(null);
     setPdfToWordResult(null);
     setProgress(0);
+    setWordProgressUpdate(null);
     setError("");
   };
+
+  useEffect(
+    () => {
+      if (!wordToPdfResult) {
+        return;
+      }
+
+      const timeout =
+        window.setTimeout(
+          () => {
+            resultSectionRef.current
+              ?.scrollIntoView({
+                behavior: "smooth",
+                block: "start",
+              });
+          },
+          150
+        );
+
+      return () => {
+        window.clearTimeout(timeout);
+      };
+    },
+    [wordToPdfResult]
+  );
 
   const handleModeChange = (
     nextMode: WordPdfMode
   ) => {
     progressService.current.stop();
+    cancelWordToPdf();
 
     setMode(nextMode);
     setFile(null);
     setWordToPdfResult(null);
     setPdfToWordResult(null);
     setProgress(0);
+    setWordProgressUpdate(null);
     setError("");
-    setLoading(false);
+    setPdfToWordLoading(false);
   };
 
   const handleFiles = (
@@ -207,25 +273,76 @@ export default function WordPdfWorkspace() {
       return;
     }
 
+    setWordToPdfResult(null);
+    setPdfToWordResult(null);
+    setError("");
+
+    if (mode === "word-to-pdf") {
+      setWordProgressUpdate(null);
+
+      try {
+        const result =
+          await runWordToPdf(
+            (signal) =>
+              wordPdfService.wordToPdf(
+                file,
+                {
+                  signal,
+                  onProgress: (
+                    update
+                  ) => {
+                    setWordProgressUpdate(
+                      update
+                    );
+                  },
+                }
+              )
+          );
+
+        if (result) {
+          setWordToPdfResult(result);
+        }
+      } catch (conversionError) {
+        if (
+          conversionError instanceof Error &&
+          conversionError.name === "AbortError"
+        ) {
+          return;
+        }
+
+        console.error(
+          "Word-to-PDF conversion failed:",
+          conversionError
+        );
+
+        const errorMessage =
+          getApiErrorMessage(
+            conversionError,
+            "The Word-to-PDF conversion could not be completed."
+          );
+
+        setWordProgressUpdate({
+          stage: "failed",
+          message: errorMessage,
+          progress: {
+            mode: "determinate",
+            value: 0,
+          },
+        });
+
+        setError(errorMessage);
+      }
+
+      return;
+    }
+
     try {
-      setLoading(true);
-      setWordToPdfResult(null);
-      setPdfToWordResult(null);
-      setError("");
+      setPdfToWordLoading(true);
 
       progressService.current.start(
         setProgress
       );
 
-      if (mode === "word-to-pdf") {
-        const result =
-          await wordPdfService.wordToPdf(
-            file,
-            wordToPdfOptions
-          );
-
-        setWordToPdfResult(result);
-      } else {
         const result =
           await wordPdfService.pdfToWord(
             file,
@@ -233,7 +350,6 @@ export default function WordPdfWorkspace() {
           );
 
         setPdfToWordResult(result);
-      }
 
       progressService.current.finish(
         setProgress
@@ -251,11 +367,11 @@ export default function WordPdfWorkspace() {
       );
     } finally {
       progressService.current.stop();
-      setLoading(false);
+      setPdfToWordLoading(false);
     }
   };
 
-  const downloadPdf = () => {
+  const handleDownloadPdf = () => {
     if (
       !wordToPdfResult ||
       !file
@@ -263,26 +379,9 @@ export default function WordPdfWorkspace() {
       return;
     }
 
-    const blob = new Blob(
-      [
-        bytesToArrayBuffer(
-          wordToPdfResult.bytes
-        ),
-      ],
-      {
-        type: "application/pdf",
-      }
-    );
-
-    const originalName =
-      file.name.replace(
-        /\.docx$/i,
-        ""
-      );
-
-    downloadBlob(
-      blob,
-      `${originalName}.pdf`
+    downloadPdfFile(
+      wordToPdfResult.bytes,
+      wordToPdfResult.outputFilename
     );
   };
 
@@ -308,14 +407,34 @@ export default function WordPdfWorkspace() {
 
   const resetWorkspace = () => {
     progressService.current.stop();
+    cancelWordToPdf();
 
     setFile(null);
     setWordToPdfResult(null);
     setPdfToWordResult(null);
     setProgress(0);
+    setWordProgressUpdate(null);
     setError("");
-    setLoading(false);
+    setPdfToWordLoading(false);
   };
+
+  const handleCancelWordToPdf = () => {
+    cancelWordToPdf();
+  };
+
+  const wordDeterminateProgress =
+    wordProgressUpdate?.progress.mode ===
+    "determinate"
+      ? Math.max(
+          0,
+          Math.min(
+            100,
+            Math.round(
+              wordProgressUpdate.progress.value
+            )
+          )
+        )
+      : null;
 
   return (
     <div className="mx-auto max-w-6xl p-8">
@@ -428,13 +547,22 @@ export default function WordPdfWorkspace() {
             className="w-full rounded-2xl bg-blue-600 px-8 py-4 font-bold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {loading
-              ? `Converting... ${progress}%`
+              ? mode === "word-to-pdf"
+                ? wordProgressUpdate
+                  ? `${wordStageLabels[wordProgressUpdate.stage]}${
+                      wordDeterminateProgress !== null
+                        ? `... ${wordDeterminateProgress}%`
+                        : "..."
+                    }`
+                  : "Starting conversion..."
+                : `Converting... ${progress}%`
               : mode === "word-to-pdf"
                 ? "Convert Word to PDF"
                 : "Convert PDF to Word"}
           </button>
 
-          {loading && (
+          {loading &&
+            mode === "pdf-to-word" && (
             <div className="mt-4 overflow-hidden rounded-full bg-slate-800">
               <div
                 className="h-3 rounded-full bg-blue-600 transition-all duration-200"
@@ -444,11 +572,93 @@ export default function WordPdfWorkspace() {
               />
             </div>
           )}
+
+          {mode === "word-to-pdf" &&
+            wordProgressUpdate &&
+            (
+              loading ||
+              wordProgressUpdate.stage ===
+                "cancelled"
+            ) && (
+            <div className="mt-4 rounded-2xl border border-blue-500/20 bg-slate-900 p-5">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm text-slate-400">
+                    Current stage
+                  </p>
+
+                  <p className="mt-1 font-bold text-blue-300">
+                    {
+                      wordStageLabels[
+                        wordProgressUpdate.stage
+                      ]
+                    }
+                  </p>
+                </div>
+
+                <div className="rounded-full border border-blue-500/30 bg-blue-950/40 px-3 py-1 text-sm font-semibold text-blue-300">
+                  {wordDeterminateProgress !== null
+                    ? `${wordDeterminateProgress}%`
+                    : "In progress"}
+                </div>
+              </div>
+
+              <div
+                className="mt-4 overflow-hidden rounded-full bg-slate-800"
+                role="progressbar"
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={
+                  wordDeterminateProgress ??
+                  undefined
+                }
+                aria-valuetext={
+                  wordProgressUpdate.message
+                }
+              >
+                {wordDeterminateProgress !== null ? (
+                  <div
+                    className="h-3 rounded-full bg-blue-500 transition-all duration-200"
+                    style={{
+                      width:
+                        `${wordDeterminateProgress}%`,
+                    }}
+                  />
+                ) : (
+                  <div className="h-3 w-full animate-pulse rounded-full bg-blue-500/70" />
+                )}
+              </div>
+
+              <p className="mt-4 text-sm text-slate-300">
+                {wordProgressUpdate.message}
+              </p>
+
+              <p className="mt-2 text-xs text-slate-500">
+                {wordDeterminateProgress !== null
+                  ? "This percentage is based on measurable result-download bytes."
+                  : "This stage does not provide an exact percentage, so Draflio shows activity without inventing one."}
+              </p>
+
+              {loading && (
+                <button
+                  type="button"
+                  onClick={handleCancelWordToPdf}
+                  className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-red-500/40 px-4 py-3 font-semibold text-red-300 transition hover:bg-red-950/40"
+                >
+                  <XCircle className="h-5 w-5" />
+                  Cancel conversion
+                </button>
+              )}
+            </div>
+          )}
         </div>
       )}
 
       {wordToPdfResult && file && (
-        <div className="mt-10 overflow-hidden rounded-3xl border border-green-500/30 bg-gradient-to-br from-green-950 via-slate-900 to-slate-950 shadow-2xl">
+        <div
+          ref={resultSectionRef}
+          className="mt-10 scroll-mt-8 overflow-hidden rounded-3xl border border-green-500/30 bg-gradient-to-br from-green-950 via-slate-900 to-slate-950 shadow-2xl"
+        >
           <div className="border-b border-green-500/20 p-8">
             <div className="flex items-center gap-3">
               <CheckCircle2 className="h-9 w-9 text-green-400" />
@@ -533,7 +743,7 @@ export default function WordPdfWorkspace() {
           <div className="flex flex-wrap gap-4 border-t border-green-500/20 p-8">
             <button
               type="button"
-              onClick={downloadPdf}
+              onClick={handleDownloadPdf}
               className="flex items-center gap-2 rounded-2xl bg-green-600 px-8 py-4 font-bold text-white transition hover:bg-green-500"
             >
               <Download className="h-5 w-5" />

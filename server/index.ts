@@ -9,6 +9,10 @@ import {
 } from "node:dns";
 
 import {
+  basename,
+} from "node:path";
+
+import {
   requestTimingMiddleware,
 } from "./monitoring/requestTiming";
 
@@ -73,6 +77,7 @@ import {
 } from "./errors/apiError";
 
 import {
+  validateDocxFile,
   validatePdfFile,
 } from "./validation/fileValidation";
 
@@ -93,7 +98,15 @@ import {
 
 import {
   closeConversionJobStore,
+  cancelConversionJob,
+  createConversionJob,
+  getConversionJobPublicData,
+  getConversionJobResult,
 } from "./conversion/conversionJobStore";
+
+import {
+  startConversionJob,
+} from "./conversion/conversionJobService";
 
 import {
   env,
@@ -952,6 +965,299 @@ app.post(
         });
     }
   }
+);
+
+/*
+  SHARED CONVERSION JOBS
+*/
+
+app.post(
+  "/api/conversion-jobs/word-to-pdf",
+  conversionRateLimiter,
+  upload.single("file"),
+  asyncHandler(
+    async (
+      request,
+      response
+    ) => {
+      const file =
+        validateDocxFile(
+          request.file,
+          {
+            fieldName:
+              "file",
+
+            maximumSizeBytes:
+              100 *
+              1024 *
+              1024,
+          }
+        );
+
+      const uploadedBasename =
+        basename(
+          file.originalname.replace(
+            /\\/g,
+            "/"
+          )
+        )
+          .replace(
+            /[\u0000-\u001f\u007f]/g,
+            ""
+          ) ||
+        "document.docx";
+
+      const documentName =
+        uploadedBasename.replace(
+          /\.docx$/i,
+          ""
+        ) ||
+        "document";
+
+      const outputFilename =
+        `${documentName}.pdf`;
+
+      const job =
+        createConversionJob({
+          operation:
+            "word-to-pdf",
+
+          originalFilename:
+            uploadedBasename,
+
+          outputFilename,
+
+          inputMediaType:
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+
+          outputMediaType:
+            "application/pdf",
+
+          inputBuffer:
+            file.buffer,
+        });
+
+      startConversionJob(
+        job.id
+      );
+
+      const publicJob =
+        getConversionJobPublicData(
+          job.id
+        );
+
+      if (
+        !publicJob ||
+        publicJob.operation !==
+          "word-to-pdf"
+      ) {
+        throw notFound(
+          "The Word-to-PDF conversion job could not be created."
+        );
+      }
+
+      response
+        .status(202)
+        .json({
+          job:
+            publicJob,
+        });
+    }
+  )
+);
+
+app.get(
+  "/api/conversion-jobs/:jobId",
+  asyncHandler(
+    async (
+      request,
+      response
+    ) => {
+      const rawJobId =
+        request.params.jobId;
+
+      const jobId =
+        Array.isArray(
+          rawJobId
+        )
+          ? rawJobId[0]
+          : rawJobId;
+
+      if (!jobId) {
+        throw badRequest(
+          "The conversion job ID is required."
+        );
+      }
+
+      const job =
+        getConversionJobPublicData(
+          jobId
+        );
+
+      if (!job) {
+        throw notFound(
+          "The conversion job was not found or has expired."
+        );
+      }
+
+      response.json({
+        job,
+      });
+    }
+  )
+);
+
+app.get(
+  "/api/conversion-jobs/:jobId/result",
+  asyncHandler(
+    async (
+      request,
+      response
+    ) => {
+      const rawJobId =
+        request.params.jobId;
+
+      const jobId =
+        Array.isArray(
+          rawJobId
+        )
+          ? rawJobId[0]
+          : rawJobId;
+
+      if (!jobId) {
+        throw badRequest(
+          "The conversion job ID is required."
+        );
+      }
+
+      const job =
+        getConversionJobPublicData(
+          jobId
+        );
+
+      if (!job) {
+        throw notFound(
+          "The conversion job was not found or has expired."
+        );
+      }
+
+      if (
+        job.status ===
+        "failed"
+      ) {
+        throw conflict(
+          job.error?.message ||
+            "The conversion job failed."
+        );
+      }
+
+      if (
+        job.status ===
+        "cancelled"
+      ) {
+        throw conflict(
+          "The conversion job was cancelled."
+        );
+      }
+
+      if (
+        job.status !==
+        "completed"
+      ) {
+        throw conflict(
+          "The conversion job is still processing."
+        );
+      }
+
+      const result =
+        getConversionJobResult(
+          jobId
+        );
+
+      if (!result) {
+        throw conflict(
+          "The conversion result is not ready."
+        );
+      }
+
+      if (
+        job.operation !==
+          "word-to-pdf" ||
+        result.mediaType !==
+          "application/pdf"
+      ) {
+        throw conflict(
+          "This conversion result is not available as a PDF."
+        );
+      }
+
+      sendPdfResponse(
+        response,
+        result.buffer,
+        {
+          filename:
+            result.filename,
+        }
+      );
+    }
+  )
+);
+
+app.delete(
+  "/api/conversion-jobs/:jobId",
+  asyncHandler(
+    async (
+      request,
+      response
+    ) => {
+      const rawJobId =
+        request.params.jobId;
+
+      const jobId =
+        Array.isArray(
+          rawJobId
+        )
+          ? rawJobId[0]
+          : rawJobId;
+
+      if (!jobId) {
+        throw badRequest(
+          "The conversion job ID is required."
+        );
+      }
+
+      const existingJob =
+        getConversionJobPublicData(
+          jobId
+        );
+
+      if (!existingJob) {
+        throw notFound(
+          "The conversion job was not found or has expired."
+        );
+      }
+
+      cancelConversionJob(
+        jobId
+      );
+
+      const publicJob =
+        getConversionJobPublicData(
+          jobId
+        );
+
+      if (!publicJob) {
+        throw notFound(
+          "The conversion job was not found or has expired."
+        );
+      }
+
+      response.json({
+        job:
+          publicJob,
+      });
+    }
+  )
 );
 
 /*
