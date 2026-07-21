@@ -92,6 +92,10 @@ import {
 } from "./ocr/ocrJobService";
 
 import {
+  closeConversionJobStore,
+} from "./conversion/conversionJobStore";
+
+import {
   env,
 } from "./env";
 
@@ -1575,6 +1579,8 @@ async function shutdownServer(
   console.log(
     `[Server] ${signal} received. Shutting down gracefully...`
   );
+
+  closeConversionJobStore();
 
 try {
   await closeHtmlPdfBrowser();

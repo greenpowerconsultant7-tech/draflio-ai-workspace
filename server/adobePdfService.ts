@@ -23,6 +23,22 @@ export type OcrPdfOptions = {
   language: string;
 };
 
+export type AdobeConversionStage =
+  | "authenticating"
+  | "creating-asset"
+  | "uploading"
+  | "submitting"
+  | "processing"
+  | "downloading";
+
+export type AdobeConversionRunOptions = {
+  signal?: AbortSignal;
+
+  onProgress?: (
+    stage: AdobeConversionStage
+  ) => void;
+};
+
 type AdobeCredentials = {
   clientId: string;
   clientSecret: string;
@@ -143,14 +159,80 @@ async function getResponseError(
 }
 
 function wait(
-  milliseconds: number
+  milliseconds: number,
+  signal?: AbortSignal
 ): Promise<void> {
-  return new Promise((resolve) => {
-    setTimeout(
-      resolve,
+  return new Promise((
+    resolve,
+    reject
+  ) => {
+    if (signal?.aborted) {
+      reject(
+        createAbortError()
+      );
+
+      return;
+    }
+
+    const timer = setTimeout(
+      () => {
+        signal?.removeEventListener(
+          "abort",
+          handleAbort
+        );
+
+        resolve();
+      },
       milliseconds
     );
+
+    function handleAbort() {
+      clearTimeout(timer);
+      signal?.removeEventListener(
+        "abort",
+        handleAbort
+      );
+
+      reject(
+        createAbortError()
+      );
+    }
+
+    signal?.addEventListener(
+      "abort",
+      handleAbort,
+      {
+        once: true,
+      }
+    );
   });
+}
+
+function createAbortError() {
+  const error = new Error(
+    "Adobe conversion was cancelled."
+  );
+
+  error.name = "AbortError";
+
+  return error;
+}
+
+function isAbortError(
+  error: unknown
+) {
+  return (
+    error instanceof Error &&
+    error.name === "AbortError"
+  );
+}
+
+function throwIfAborted(
+  signal?: AbortSignal
+) {
+  if (signal?.aborted) {
+    throw createAbortError();
+  }
 }
 
 function getNetworkErrorCode(
@@ -232,6 +314,10 @@ async function fetchWithRetry(
     attempt <= maximumAttempts;
     attempt++
   ) {
+    throwIfAborted(
+      init.signal ?? undefined
+    );
+
     try {
       const response =
         await fetch(url, init);
@@ -270,9 +356,19 @@ async function fetchWithRetry(
         `[Adobe REST] HTTP ${response.status}. Retry ${attempt}/${maximumAttempts} in ${delay}ms...`
       );
 
-      await wait(delay);
+      await wait(
+        delay,
+        init.signal ?? undefined
+      );
     } catch (error) {
       lastError = error;
+
+      if (
+        init.signal?.aborted ||
+        isAbortError(error)
+      ) {
+        throw createAbortError();
+      }
 
       const errorCode =
         getNetworkErrorCode(
@@ -301,7 +397,10 @@ async function fetchWithRetry(
         }. Retry ${attempt}/${maximumAttempts} in ${delay}ms...`
       );
 
-      await wait(delay);
+      await wait(
+        delay,
+        init.signal ?? undefined
+      );
     }
   }
 
@@ -314,7 +413,8 @@ async function fetchWithRetry(
 }
 
 async function getAccessToken(
-  credentials: AdobeCredentials
+  credentials: AdobeCredentials,
+  signal?: AbortSignal
 ): Promise<string> {
   console.log(
     "[Adobe REST] Requesting access token..."
@@ -344,6 +444,8 @@ async function getAccessToken(
       },
 
       body,
+
+      signal,
     }
   );
 
@@ -374,7 +476,8 @@ async function getAccessToken(
 async function createUploadAsset(
   accessToken: string,
   clientId: string,
-  mediaType: string
+  mediaType: string,
+  signal?: AbortSignal
 ): Promise<{
   assetID: string;
   uploadUri: string;
@@ -402,6 +505,8 @@ async function createUploadAsset(
       body: JSON.stringify({
         mediaType,
       }),
+
+      signal,
     }
   );
 
@@ -434,7 +539,8 @@ async function createUploadAsset(
 async function uploadFile(
   uploadUri: string,
   inputBuffer: Buffer,
-  mediaType: string
+  mediaType: string,
+  signal?: AbortSignal
 ): Promise<void> {
   console.log(
     "[Adobe REST] Uploading document..."
@@ -454,6 +560,8 @@ async function uploadFile(
         bufferToArrayBuffer(
           inputBuffer
         ),
+
+      signal,
     }
   );
 
@@ -477,7 +585,8 @@ async function submitJob(
     unknown
   >,
   accessToken: string,
-  clientId: string
+  clientId: string,
+  signal?: AbortSignal
 ): Promise<string> {
   console.log(
     "[Adobe REST] Submitting conversion job..."
@@ -503,6 +612,8 @@ async function submitJob(
         JSON.stringify(
           requestBody
         ),
+
+      signal,
     }
   );
 
@@ -538,7 +649,8 @@ async function submitJob(
 async function waitForJob(
   statusUrl: string,
   accessToken: string,
-  clientId: string
+  clientId: string,
+  signal?: AbortSignal
 ): Promise<string> {
   const maximumPollingAttempts =
     150;
@@ -564,6 +676,8 @@ async function waitForJob(
             "X-API-Key":
               clientId,
           },
+
+          signal,
         }
       );
 
@@ -609,7 +723,8 @@ async function waitForJob(
     }
 
     await wait(
-      pollingInterval
+      pollingInterval,
+      signal
     );
   }
 
@@ -619,7 +734,8 @@ async function waitForJob(
 }
 
 async function downloadResult(
-  downloadUri: string
+  downloadUri: string,
+  signal?: AbortSignal
 ): Promise<Buffer> {
   console.log(
     "[Adobe REST] Downloading converted document..."
@@ -630,6 +746,8 @@ async function downloadResult(
       downloadUri,
       {
         method: "GET",
+
+        signal,
       }
     );
 
@@ -659,7 +777,8 @@ async function runConversion(
   operationPath: string,
   createJobBody: (
     assetID: string
-  ) => Record<string, unknown>
+  ) => Record<string, unknown>,
+  runOptions: AdobeConversionRunOptions = {}
 ): Promise<Buffer> {
   const totalStartedAt =
     Date.now();
@@ -685,12 +804,21 @@ async function runConversion(
   const credentials =
     getCredentials();
 
+  throwIfAborted(
+    runOptions.signal
+  );
+
+  runOptions.onProgress?.(
+    "authenticating"
+  );
+
   const authenticationStartedAt =
     Date.now();
 
   const accessToken =
     await getAccessToken(
-      credentials
+      credentials,
+      runOptions.signal
     );
 
   logDuration(
@@ -701,11 +829,20 @@ async function runConversion(
   const assetStartedAt =
     Date.now();
 
+  throwIfAborted(
+    runOptions.signal
+  );
+
+  runOptions.onProgress?.(
+    "creating-asset"
+  );
+
   const asset =
     await createUploadAsset(
       accessToken,
       credentials.clientId,
-      inputMediaType
+      inputMediaType,
+      runOptions.signal
     );
 
   logDuration(
@@ -716,10 +853,19 @@ async function runConversion(
   const uploadStartedAt =
     Date.now();
 
+  throwIfAborted(
+    runOptions.signal
+  );
+
+  runOptions.onProgress?.(
+    "uploading"
+  );
+
   await uploadFile(
     asset.uploadUri,
     inputBuffer,
-    inputMediaType
+    inputMediaType,
+    runOptions.signal
   );
 
   logDuration(
@@ -730,6 +876,14 @@ async function runConversion(
   const submissionStartedAt =
     Date.now();
 
+  throwIfAborted(
+    runOptions.signal
+  );
+
+  runOptions.onProgress?.(
+    "submitting"
+  );
+
   const statusUrl =
     await submitJob(
       operationPath,
@@ -737,7 +891,8 @@ async function runConversion(
         asset.assetID
       ),
       accessToken,
-      credentials.clientId
+      credentials.clientId,
+      runOptions.signal
     );
 
   logDuration(
@@ -748,11 +903,20 @@ async function runConversion(
   const processingStartedAt =
     Date.now();
 
+  throwIfAborted(
+    runOptions.signal
+  );
+
+  runOptions.onProgress?.(
+    "processing"
+  );
+
   const downloadUri =
     await waitForJob(
       statusUrl,
       accessToken,
-      credentials.clientId
+      credentials.clientId,
+      runOptions.signal
     );
 
   logDuration(
@@ -763,9 +927,18 @@ async function runConversion(
   const downloadStartedAt =
     Date.now();
 
+  throwIfAborted(
+    runOptions.signal
+  );
+
+  runOptions.onProgress?.(
+    "downloading"
+  );
+
   const result =
     await downloadResult(
-      downloadUri
+      downloadUri,
+      runOptions.signal
     );
 
   logDuration(
@@ -782,7 +955,8 @@ async function runConversion(
 }
 
 export async function convertDocxToPdf(
-  inputBuffer: Buffer
+  inputBuffer: Buffer,
+  runOptions?: AdobeConversionRunOptions
 ): Promise<Buffer> {
   console.log(
     "[Adobe REST] Starting Word → PDF conversion."
@@ -794,12 +968,14 @@ export async function convertDocxToPdf(
     "/operation/createpdf",
     (assetID) => ({
       assetID,
-    })
+    }),
+    runOptions
   );
 }
 
 export async function convertPdfToDocx(
-  inputBuffer: Buffer
+  inputBuffer: Buffer,
+  runOptions?: AdobeConversionRunOptions
 ): Promise<Buffer> {
   console.log(
     "[Adobe REST] Starting PDF → Word conversion."
@@ -812,12 +988,14 @@ export async function convertPdfToDocx(
     (assetID) => ({
       assetID,
       targetFormat: "docx",
-    })
+    }),
+    runOptions
   );
 }
 
 export async function convertXlsxToPdf(
-  inputBuffer: Buffer
+  inputBuffer: Buffer,
+  runOptions?: AdobeConversionRunOptions
 ): Promise<Buffer> {
   console.log(
     "[Adobe REST] Starting Excel → PDF conversion."
@@ -829,12 +1007,14 @@ export async function convertXlsxToPdf(
     "/operation/createpdf",
     (assetID) => ({
       assetID,
-    })
+    }),
+    runOptions
   );
 }
 
 export async function convertPdfToXlsx(
-  inputBuffer: Buffer
+  inputBuffer: Buffer,
+  runOptions?: AdobeConversionRunOptions
 ): Promise<Buffer> {
   console.log(
     "[Adobe REST] Starting PDF → Excel conversion."
@@ -847,11 +1027,13 @@ export async function convertPdfToXlsx(
     (assetID) => ({
       assetID,
       targetFormat: "xlsx",
-    })
+    }),
+    runOptions
   );
 }
 export async function convertPptxToPdf(
-  inputBuffer: Buffer
+  inputBuffer: Buffer,
+  runOptions?: AdobeConversionRunOptions
 ): Promise<Buffer> {
   console.log(
     "[Adobe REST] Starting PowerPoint → PDF conversion."
@@ -863,12 +1045,14 @@ export async function convertPptxToPdf(
     "/operation/createpdf",
     (assetID) => ({
       assetID,
-    })
+    }),
+    runOptions
   );
 }
 
 export async function convertPdfToPptx(
-  inputBuffer: Buffer
+  inputBuffer: Buffer,
+  runOptions?: AdobeConversionRunOptions
 ): Promise<Buffer> {
   console.log(
     "[Adobe REST] Starting PDF → PowerPoint conversion."
@@ -881,12 +1065,14 @@ export async function convertPdfToPptx(
     (assetID) => ({
       assetID,
       targetFormat: "pptx",
-    })
+    }),
+    runOptions
   );
 }
 export async function convertPdfWithOcr(
   inputBuffer: Buffer,
-  options: OcrPdfOptions
+  options: OcrPdfOptions,
+  runOptions?: AdobeConversionRunOptions
 ): Promise<Buffer> {
   console.log(
     "[Adobe REST] Starting PDF OCR conversion."
@@ -900,6 +1086,7 @@ export async function convertPdfWithOcr(
       assetID,
       ocrLang:
         options.language,
-    })
+    }),
+    runOptions
   );
 }
