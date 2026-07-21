@@ -193,8 +193,12 @@ class WordPdfService {
       },
     });
 
+    const blobBytes = new Uint8Array(result.bytes.byteLength);
+
+    blobBytes.set(result.bytes);
+
     return {
-      blob: new Blob([result.bytes], {
+      blob: new Blob([blobBytes.buffer], {
         type: DOCX_MEDIA_TYPE,
       }),
       pageCount: originalPdf.getPageCount(),
