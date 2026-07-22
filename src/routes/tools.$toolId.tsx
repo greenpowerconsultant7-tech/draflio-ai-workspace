@@ -17,19 +17,23 @@ import PowerPointPdfWorkspace from "@/features/ppt/PowerPointPdfWorkspace";
 import OcrPdfWorkspace from "@/features/ocr/OcrPdfWorkspace";
 import InvoiceWorkspace from "@/features/invoice/InvoiceWorkspace";
 import HtmlPdfWorkspace from "@/features/html/HtmlPdfWorkspace";
+import RedactionWorkspace from "@/features/redaction/RedactionWorkspace";
 
 export const Route = createFileRoute("/tools/$toolId")({
   loader: ({ params }) => {
     const tool = TOOL_BY_ID[params.toolId];
     if (!tool) throw notFound();
-    return { tool };
+    return { toolId: tool.id };
   },
-  head: ({ loaderData }) => ({
-    meta: [
-      { title: loaderData?.tool ? `${loaderData.tool.name} · Draflio` : "Tool · Draflio" },
-      { name: "description", content: loaderData?.tool?.description ?? "AI document tool." },
-    ],
-  }),
+  head: ({ loaderData }) => {
+    const tool = loaderData?.toolId ? TOOL_BY_ID[loaderData.toolId] : undefined;
+    return {
+      meta: [
+        { title: tool ? `${tool.name} · Draflio` : "Tool · Draflio" },
+        { name: "description", content: tool?.description ?? "AI document tool." },
+      ],
+    };
+  },
   notFoundComponent: () => (
     <div className="min-h-screen">
       <Header />
@@ -45,8 +49,11 @@ export const Route = createFileRoute("/tools/$toolId")({
 });
 
 function ToolPage() {
-  const { tool } =
+  const { toolId } =
     Route.useLoaderData();
+  const tool = TOOL_BY_ID[toolId];
+
+  if (!tool) throw notFound();
 
 if (tool.id === "merge-pdf") {
     return (
@@ -110,6 +117,10 @@ if (tool.id === "invoice") {
 
 if (tool.id === "html-to-pdf") {
   return <HtmlPdfWorkspace />;
+}
+
+if (tool.id === "redact") {
+  return <RedactionWorkspace />;
 }
 
   return (

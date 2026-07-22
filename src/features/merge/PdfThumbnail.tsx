@@ -1,10 +1,7 @@
 
 import { useEffect, useState } from "react";
-import * as pdfjsLib from "pdfjs-dist";
 
 import pdfWorker from "pdfjs-dist/build/pdf.worker.min.mjs?url";
-
-pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
 
 type Props = {
   file: File;
@@ -23,6 +20,12 @@ export default function PdfThumbnail({
 
     const generateThumbnail = async () => {
       try {
+        const pdfjsLib = await import("pdfjs-dist");
+
+        if (!mounted) return;
+
+        pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
+
         const buffer = await file.arrayBuffer();
 
         const pdf = await pdfjsLib.getDocument({

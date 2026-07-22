@@ -4,19 +4,7 @@ import {
   type PDFImage,
 } from "pdf-lib";
 
-import {
-  getDocument,
-  GlobalWorkerOptions,
-} from "pdfjs-dist";
-
 import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
-
-/*
-  Vite converts the PDF.js worker file into
-  a browser-accessible URL.
-*/
-GlobalWorkerOptions.workerSrc =
-  pdfWorkerUrl;
 
 export type JpgPdfMode =
   | "images-to-pdf"
@@ -344,6 +332,18 @@ class JpgPdfService {
     file: File,
     options: PdfToJpgOptions
   ): Promise<ConvertedJpgPage[]> {
+    const {
+      getDocument,
+      GlobalWorkerOptions,
+    } = await import("pdfjs-dist");
+
+    /*
+      Vite converts the PDF.js worker file into
+      a browser-accessible URL.
+    */
+    GlobalWorkerOptions.workerSrc =
+      pdfWorkerUrl;
+
     const isPdf =
       file.type ===
         "application/pdf" ||
