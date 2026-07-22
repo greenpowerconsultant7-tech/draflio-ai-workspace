@@ -91,6 +91,14 @@ import {
 } from "./http/attachmentResponse";
 
 import {
+  createRedactionRouter,
+} from "./redaction/redactionRoutes";
+
+import {
+  closeRedactionSessionService,
+} from "./redaction/redactionSessionService";
+
+import {
   cancelOcrJob,
   createOcrJob,
   getOcrJobPublicData,
@@ -384,6 +392,13 @@ const conversionRateLimiter =
         "Too many conversion requests. Please wait a few minutes and try again.",
     },
   });
+
+app.use(
+  "/api/redaction-sessions",
+  createRedactionRouter(
+    conversionRateLimiter
+  )
+);
 
 app.use(
   [
@@ -2129,6 +2144,8 @@ async function shutdownServer(
   );
 
   closeConversionJobStore();
+
+  await closeRedactionSessionService();
 
 try {
   await closeHtmlPdfBrowser();
