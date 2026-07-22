@@ -1,5 +1,8 @@
+/// <reference types="node" />
+/// <reference lib="esnext.float16" />
+
 import { fileURLToPath } from "node:url";
-import { createCanvas } from "@napi-rs/canvas";
+import { createCanvas, type Canvas } from "@napi-rs/canvas";
 import { PDFDocument, PDFName } from "pdf-lib";
 import {
   AnnotationMode,
@@ -129,8 +132,7 @@ async function verifyFreshOutput(bytes: Uint8Array, expectedPages: number): Prom
       throw new Error(`Rebuilt output unexpectedly contains catalog entry ${key}`);
     }
   }
-  const names = catalog.lookupMaybe(PDFName.of("Names"));
-  if (names) {
+  if (catalog.has(PDFName.of("Names"))) {
     throw new Error("Rebuilt output unexpectedly contains a Names dictionary");
   }
 }
@@ -145,12 +147,11 @@ export async function rasterRedactPdf(
 
   let source: PDFDocumentProxy | undefined;
   let loadingTask: ReturnType<typeof getDocument> | undefined;
-  let currentCanvas: ReturnType<typeof createCanvas> | undefined;
+  let cleanupCanvas: Canvas | undefined;
 
   try {
     loadingTask = getDocument({
       data: inputBuffer.slice(),
-      isEvalSupported: false,
       standardFontDataUrl: STANDARD_FONT_DATA_URL,
       useSystemFonts: false,
     });
@@ -178,50 +179,56 @@ export async function rasterRedactPdf(
       const pointViewport = sourcePage.getViewport({ scale: 1 });
       const pixelWidth = Math.ceil(viewport.width);
       const pixelHeight = Math.ceil(viewport.height);
-      currentCanvas = createCanvas(pixelWidth, pixelHeight);
-      const context = currentCanvas.getContext("2d");
+      const pageCanvas = createCanvas(pixelWidth, pixelHeight);
+      cleanupCanvas = pageCanvas;
+      const pageContext = pageCanvas.getContext("2d");
 
-      await sourcePage.render({
-        canvas: currentCanvas,
-        canvasContext: context as never,
-        viewport,
-        annotationMode: AnnotationMode.DISABLE,
-        background: "#ffffff",
-      }).promise;
-      throwIfAborted(options.signal);
+      try {
+        await sourcePage.render({
+          canvas: null,
+          canvasContext: pageContext as unknown as CanvasRenderingContext2D,
+          viewport,
+          annotationMode: AnnotationMode.DISABLE,
+          background: "#ffffff",
+        }).promise;
+        throwIfAborted(options.signal);
 
-      report(options.onProgress, "applying-redactions", pageIndex, source.numPages);
-      context.fillStyle = "#000000";
-      for (const rectangle of options.rectangles) {
-        if (rectangle.pageIndex !== pageIndex) {
-          continue;
+        report(options.onProgress, "applying-redactions", pageIndex, source.numPages);
+        pageContext.fillStyle = "#000000";
+        for (const rectangle of options.rectangles) {
+          if (rectangle.pageIndex !== pageIndex) {
+            continue;
+          }
+          pageContext.fillRect(
+            rectangle.x * pixelWidth,
+            rectangle.y * pixelHeight,
+            rectangle.width * pixelWidth,
+            rectangle.height * pixelHeight,
+          );
         }
-        context.fillRect(
-          rectangle.x * pixelWidth,
-          rectangle.y * pixelHeight,
-          rectangle.width * pixelWidth,
-          rectangle.height * pixelHeight,
-        );
+        throwIfAborted(options.signal);
+
+        report(options.onProgress, "rebuilding", pageIndex, source.numPages);
+        const pngBytes = pageCanvas.toBuffer("image/png");
+        try {
+          const image = await output.embedPng(pngBytes);
+          const outputPage = output.addPage([pointViewport.width, pointViewport.height]);
+          outputPage.drawImage(image, {
+            x: 0,
+            y: 0,
+            width: pointViewport.width,
+            height: pointViewport.height,
+          });
+          pageDimensions.push({ width: pointViewport.width, height: pointViewport.height });
+        } finally {
+          pngBytes.fill(0);
+        }
+      } finally {
+        pageCanvas.width = 0;
+        pageCanvas.height = 0;
+        cleanupCanvas = undefined;
+        sourcePage.cleanup();
       }
-      throwIfAborted(options.signal);
-
-      report(options.onProgress, "rebuilding", pageIndex, source.numPages);
-      const pngBytes = currentCanvas.toBuffer("image/png");
-      const image = await output.embedPng(pngBytes);
-      const outputPage = output.addPage([pointViewport.width, pointViewport.height]);
-      outputPage.drawImage(image, {
-        x: 0,
-        y: 0,
-        width: pointViewport.width,
-        height: pointViewport.height,
-      });
-      pageDimensions.push({ width: pointViewport.width, height: pointViewport.height });
-
-      pngBytes.fill(0);
-      currentCanvas.width = 0;
-      currentCanvas.height = 0;
-      currentCanvas = undefined;
-      sourcePage.cleanup();
       report(options.onProgress, "rebuilding", pageIndex + 1, source.numPages);
     }
 
@@ -241,9 +248,9 @@ export async function rasterRedactPdf(
     report(options.onProgress, "failed");
     throw error;
   } finally {
-    if (currentCanvas) {
-      currentCanvas.width = 0;
-      currentCanvas.height = 0;
+    if (cleanupCanvas) {
+      cleanupCanvas.width = 0;
+      cleanupCanvas.height = 0;
     }
     await loadingTask?.destroy();
   }

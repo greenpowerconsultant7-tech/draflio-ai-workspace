@@ -1,3 +1,6 @@
+/// <reference types="node" />
+/// <reference lib="esnext.float16" />
+
 import { stat } from "node:fs/promises";
 import { mkdir, rm, writeFile } from "node:fs/promises";
 import { performance } from "node:perf_hooks";
@@ -77,7 +80,6 @@ async function getVisiblePageDimensions(
 ): Promise<Array<{ width: number; height: number }>> {
   const loadingTask = getDocument({
     data: bytes.slice(),
-    isEvalSupported: false,
     standardFontDataUrl: STANDARD_FONT_DATA_URL,
     useSystemFonts: false,
   });
@@ -99,7 +101,6 @@ async function getVisiblePageDimensions(
 async function extractText(bytes: Uint8Array): Promise<string> {
   const loadingTask = getDocument({
     data: bytes.slice(),
-    isEvalSupported: false,
     standardFontDataUrl: STANDARD_FONT_DATA_URL,
     useSystemFonts: false,
   });
@@ -129,7 +130,6 @@ async function renderVerificationPage(bytes: Uint8Array): Promise<{
 }> {
   const loadingTask = getDocument({
     data: bytes.slice(),
-    isEvalSupported: false,
     standardFontDataUrl: STANDARD_FONT_DATA_URL,
     useSystemFonts: false,
   });
@@ -137,39 +137,42 @@ async function renderVerificationPage(bytes: Uint8Array): Promise<{
   try {
     const page = await document.getPage(1);
     const viewport = page.getViewport({ scale: 2 });
-    const canvas = createCanvas(Math.ceil(viewport.width), Math.ceil(viewport.height));
-    const context = canvas.getContext("2d");
-    await page.render({
-      canvas,
-      canvasContext: context as never,
-      viewport,
-      annotationMode: AnnotationMode.DISABLE,
-      background: "#ffffff",
-    }).promise;
+    const pageCanvas = createCanvas(Math.ceil(viewport.width), Math.ceil(viewport.height));
+    const pageContext = pageCanvas.getContext("2d");
+    try {
+      await page.render({
+        canvas: null,
+        canvasContext: pageContext as unknown as CanvasRenderingContext2D,
+        viewport,
+        annotationMode: AnnotationMode.DISABLE,
+        background: "#ffffff",
+      }).promise;
 
-    const maskX = Math.floor(0.25 * canvas.width);
-    const maskY = Math.floor(0.17 * canvas.height);
-    const maskPixel = context.getImageData(maskX, maskY, 1, 1).data;
-    const maskPixelBlack =
-      maskPixel[0] === 0 && maskPixel[1] === 0 && maskPixel[2] === 0 && maskPixel[3] === 255;
+      const maskX = Math.floor(0.25 * pageCanvas.width);
+      const maskY = Math.floor(0.17 * pageCanvas.height);
+      const maskPixel = pageContext.getImageData(maskX, maskY, 1, 1).data;
+      const maskPixelBlack =
+        maskPixel[0] === 0 && maskPixel[1] === 0 && maskPixel[2] === 0 && maskPixel[3] === 255;
 
-    const ordinary = context.getImageData(
-      Math.floor((60 / 612) * canvas.width),
-      Math.floor((185 / 792) * canvas.height),
-      Math.floor((440 / 612) * canvas.width),
-      Math.floor((40 / 792) * canvas.height),
-    ).data;
-    let darkPixels = 0;
-    for (let index = 0; index < ordinary.length; index += 4) {
-      if (ordinary[index] < 128 && ordinary[index + 1] < 128 && ordinary[index + 2] < 128) {
-        darkPixels += 1;
+      const ordinary = pageContext.getImageData(
+        Math.floor((60 / 612) * pageCanvas.width),
+        Math.floor((185 / 792) * pageCanvas.height),
+        Math.floor((440 / 612) * pageCanvas.width),
+        Math.floor((40 / 792) * pageCanvas.height),
+      ).data;
+      let darkPixels = 0;
+      for (let index = 0; index < ordinary.length; index += 4) {
+        if (ordinary[index] < 128 && ordinary[index + 1] < 128 && ordinary[index + 2] < 128) {
+          darkPixels += 1;
+        }
       }
+      const png = pageCanvas.toBuffer("image/png");
+      return { png, maskPixelBlack, ordinaryRegionHasInk: darkPixels > 100 };
+    } finally {
+      pageCanvas.width = 0;
+      pageCanvas.height = 0;
+      page.cleanup();
     }
-    const png = canvas.toBuffer("image/png");
-    canvas.width = 0;
-    canvas.height = 0;
-    page.cleanup();
-    return { png, maskPixelBlack, ordinaryRegionHasInk: darkPixels > 100 };
   } finally {
     await loadingTask.destroy();
   }
