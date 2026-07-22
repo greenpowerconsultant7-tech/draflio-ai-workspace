@@ -16,6 +16,13 @@ export interface DisplayRectangle {
   height: number;
 }
 
+export interface NormalizedRectangle {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
 export type ResizeCorner = "north-west" | "north-east" | "south-west" | "south-east";
 
 export const MAXIMUM_REDACTION_RECTANGLES = 100;
@@ -23,6 +30,38 @@ export const MINIMUM_RECTANGLE_PIXELS = 6;
 
 export function clamp(value: number, minimum = 0, maximum = 1): number {
   return Math.min(maximum, Math.max(minimum, value));
+}
+
+export function clampNormalizedRectangle(
+  rectangle: NormalizedRectangle,
+): NormalizedRectangle | null {
+  if (![rectangle.x, rectangle.y, rectangle.width, rectangle.height].every(Number.isFinite))
+    return null;
+  const left = clamp(rectangle.x);
+  const top = clamp(rectangle.y);
+  const right = clamp(rectangle.x + rectangle.width);
+  const bottom = clamp(rectangle.y + rectangle.height);
+  if (right <= left || bottom <= top) return null;
+  return { x: left, y: top, width: right - left, height: bottom - top };
+}
+
+export function rectanglesOverlap(
+  left: RedactionRectanglePayload,
+  right: RedactionRectanglePayload,
+  minimumCoverage = 0.5,
+): boolean {
+  if (left.pageIndex !== right.pageIndex) return false;
+  const intersectionWidth = Math.max(
+    0,
+    Math.min(left.x + left.width, right.x + right.width) - Math.max(left.x, right.x),
+  );
+  const intersectionHeight = Math.max(
+    0,
+    Math.min(left.y + left.height, right.y + right.height) - Math.max(left.y, right.y),
+  );
+  const intersection = intersectionWidth * intersectionHeight;
+  const smallerArea = Math.min(left.width * left.height, right.width * right.height);
+  return smallerArea > 0 && intersection / smallerArea >= minimumCoverage;
 }
 
 export function displayPointToNormalized(point: Point, width: number, height: number): Point {

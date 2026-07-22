@@ -24,9 +24,18 @@ import {
   type RedactionSession,
 } from "@/lib/redactionSessionClient";
 import RedactionPageCanvas from "./RedactionPageCanvas";
+import RedactionDetectionPanel from "./RedactionDetectionPanel";
+import {
+  limitAcceptedSuggestions,
+  scanRedactionSuggestions,
+  type DetectionOptions,
+  type DetectionProgress,
+  type RedactionSuggestion,
+} from "./redactionDetection";
 import {
   MAXIMUM_REDACTION_RECTANGLES,
   pageAspectRatioMatches,
+  rectanglesOverlap,
   withoutEditorId,
   type EditorRectangle,
 } from "./redactionGeometry";
@@ -127,6 +136,13 @@ export default function RedactionWorkspace() {
   const [state, dispatch] = useReducer(reducer, initialState);
   const [pdfDocument, setPdfDocument] = useState<PDFDocumentProxy | null>(null);
   const [cancelling, setCancelling] = useState(false);
+  const [suggestions, setSuggestions] = useState<RedactionSuggestion[]>([]);
+  const [scanning, setScanning] = useState(false);
+  const [scanProgress, setScanProgress] = useState<DetectionProgress | null>(null);
+  const [detectionMessage, setDetectionMessage] = useState(
+    "Choose categories, then scan this searchable PDF.",
+  );
+  const [detectionLimitMessage, setDetectionLimitMessage] = useState("");
   const mountedRef = useRef(true);
   const operationRef = useRef(0);
   const controllerRef = useRef<AbortController | null>(null);
@@ -134,6 +150,8 @@ export default function RedactionWorkspace() {
   const pdfDocumentRef = useRef<PDFDocumentProxy | null>(null);
   const sessionRef = useRef<RedactionSession | null>(null);
   const finalizingRef = useRef(false);
+  const scanControllerRef = useRef<AbortController | null>(null);
+  const scanRunRef = useRef(0);
 
   useEffect(() => {
     sessionRef.current = state.session;
@@ -153,6 +171,8 @@ export default function RedactionWorkspace() {
       mountedRef.current = false;
       operationRef.current += 1;
       controllerRef.current?.abort();
+      scanRunRef.current += 1;
+      scanControllerRef.current?.abort();
       loadingTaskRef.current?.destroy();
       pdfDocumentRef.current?.cleanup();
       const session = sessionRef.current;
@@ -165,10 +185,18 @@ export default function RedactionWorkspace() {
     const session = sessionRef.current;
     operationRef.current += 1;
     controllerRef.current?.abort();
+    scanRunRef.current += 1;
+    scanControllerRef.current?.abort();
+    scanControllerRef.current = null;
     controllerRef.current = null;
     finalizingRef.current = false;
     await releasePreview();
     dispatch({ type: "reset" });
+    setSuggestions([]);
+    setScanning(false);
+    setScanProgress(null);
+    setDetectionMessage("Choose categories, then scan this searchable PDF.");
+    setDetectionLimitMessage("");
     if (session && !isTerminalRedactionSession(session))
       await cancelRedactionSession(session.id).catch(() => undefined);
   }, [releasePreview]);
@@ -176,8 +204,16 @@ export default function RedactionWorkspace() {
   const handleFile = async (file: File) => {
     const operation = ++operationRef.current;
     controllerRef.current?.abort();
+    scanRunRef.current += 1;
+    scanControllerRef.current?.abort();
+    scanControllerRef.current = null;
     await releasePreview();
     dispatch({ type: "reset" });
+    setSuggestions([]);
+    setScanning(false);
+    setScanProgress(null);
+    setDetectionMessage("Choose categories, then scan this searchable PDF.");
+    setDetectionLimitMessage("");
     try {
       validateRedactionPdfFile(file);
       const controller = new AbortController();
@@ -231,6 +267,85 @@ export default function RedactionWorkspace() {
     }
   };
 
+  const cancelDetection = useCallback(() => {
+    scanRunRef.current += 1;
+    scanControllerRef.current?.abort();
+    scanControllerRef.current = null;
+    setScanning(false);
+    setScanProgress(null);
+    setDetectionMessage("Document scan cancelled.");
+  }, []);
+
+  const runDetection = async (options: DetectionOptions) => {
+    if (!pdfDocumentRef.current || state.phase !== "review" || scanning) return;
+    const run = ++scanRunRef.current;
+    scanControllerRef.current?.abort();
+    const controller = new AbortController();
+    scanControllerRef.current = controller;
+    setScanning(true);
+    setScanProgress(null);
+    setDetectionMessage("Scanning searchable text locally.");
+    setDetectionLimitMessage("");
+    try {
+      const result = await scanRedactionSuggestions(
+        pdfDocumentRef.current,
+        options,
+        state.rectangles,
+        {
+          signal: controller.signal,
+          onProgress: (progress) => {
+            if (mountedRef.current && run === scanRunRef.current) setScanProgress(progress);
+          },
+        },
+      );
+      if (!mountedRef.current || run !== scanRunRef.current) return;
+      setSuggestions(result.suggestions);
+      if (result.searchableTextItems === 0) {
+        setDetectionMessage(
+          "No searchable text was found. Manual redaction still works; OCR-based detection will be added separately.",
+        );
+      } else if (result.suggestions.length === 0) {
+        setDetectionMessage("No matches were found for the selected categories.");
+      } else {
+        setDetectionMessage(`${result.suggestions.length} redaction suggestions found.`);
+      }
+    } catch (error) {
+      if (!abortError(error) && mountedRef.current && run === scanRunRef.current)
+        setDetectionMessage("The local document scan could not be completed.");
+    } finally {
+      if (mountedRef.current && run === scanRunRef.current) {
+        scanControllerRef.current = null;
+        setScanning(false);
+        setScanProgress(null);
+      }
+    }
+  };
+
+  const acceptSuggestions = (candidates: RedactionSuggestion[]) => {
+    const { accepted, rejectedCount } = limitAcceptedSuggestions(
+      state.rectangles.length,
+      candidates,
+    );
+    const acceptedIds = new Set(accepted.map((suggestion) => suggestion.id));
+    if (accepted.length > 0) {
+      dispatch({
+        type: "rectangles",
+        rectangles: [
+          ...state.rectangles,
+          ...accepted.map(
+            ({ category: _category, selected: _selected, ...rectangle }) => rectangle,
+          ),
+        ],
+      });
+      setSuggestions((current) => current.filter((suggestion) => !acceptedIds.has(suggestion.id)));
+    }
+    setDetectionLimitMessage(
+      rejectedCount > 0
+        ? `${rejectedCount} suggestions were not accepted because a document can contain at most 100 redaction rectangles.`
+        : "",
+    );
+  };
+
   const finalize = async () => {
     if (
       finalizingRef.current ||
@@ -240,6 +355,12 @@ export default function RedactionWorkspace() {
       !state.confirmed
     )
       return;
+    scanRunRef.current += 1;
+    scanControllerRef.current?.abort();
+    scanControllerRef.current = null;
+    setScanning(false);
+    setScanProgress(null);
+    setSuggestions([]);
     finalizingRef.current = true;
     const operation = operationRef.current;
     const controller = new AbortController();
@@ -313,6 +434,9 @@ export default function RedactionWorkspace() {
 
   const pageRectangles = state.rectangles.filter(
     (rectangle) => rectangle.pageIndex === state.pageIndex,
+  );
+  const pageSuggestions = suggestions.filter(
+    (suggestion) => suggestion.pageIndex === state.pageIndex,
   );
   const editingDisabled = state.phase !== "review";
   const pageCount = state.session?.pageCount ?? 0;
@@ -431,13 +555,26 @@ export default function RedactionWorkspace() {
                 document={pdfDocument}
                 pageIndex={state.pageIndex}
                 rectangles={pageRectangles}
+                suggestions={pageSuggestions}
                 selectedId={state.selectedId}
                 drawMode={state.drawMode}
                 editingDisabled={editingDisabled}
                 maximumReached={state.rectangles.length >= MAXIMUM_REDACTION_RECTANGLES}
                 onSelect={(id) => dispatch({ type: "select", id })}
-                onAdd={(rectangle) =>
-                  dispatch({ type: "rectangles", rectangles: [...state.rectangles, rectangle] })
+                onAdd={(rectangle) => {
+                  dispatch({ type: "rectangles", rectangles: [...state.rectangles, rectangle] });
+                  setSuggestions((current) =>
+                    current.filter((suggestion) => !rectanglesOverlap(suggestion, rectangle)),
+                  );
+                }}
+                onToggleSuggestion={(id) =>
+                  setSuggestions((current) =>
+                    current.map((suggestion) =>
+                      suggestion.id === id
+                        ? { ...suggestion, selected: !suggestion.selected }
+                        : suggestion,
+                    ),
+                  )
                 }
                 onChange={(rectangle) => dispatch({ type: "change-rectangle", rectangle })}
                 onDelete={(id) =>
@@ -487,6 +624,39 @@ export default function RedactionWorkspace() {
             </section>
 
             <aside className="space-y-5">
+              <RedactionDetectionPanel
+                key={state.session.id}
+                scanning={scanning}
+                progress={scanProgress}
+                suggestions={suggestions}
+                message={detectionMessage}
+                limitMessage={detectionLimitMessage}
+                remainingCapacity={Math.max(
+                  0,
+                  MAXIMUM_REDACTION_RECTANGLES - state.rectangles.length,
+                )}
+                disabled={editingDisabled}
+                onScan={runDetection}
+                onCancel={cancelDetection}
+                onSelectAll={() =>
+                  setSuggestions((current) =>
+                    current.map((suggestion) => ({ ...suggestion, selected: true })),
+                  )
+                }
+                onClearSelection={() =>
+                  setSuggestions((current) =>
+                    current.map((suggestion) => ({ ...suggestion, selected: false })),
+                  )
+                }
+                onAcceptSelected={() =>
+                  acceptSuggestions(suggestions.filter((suggestion) => suggestion.selected))
+                }
+                onAcceptAll={() => acceptSuggestions(suggestions)}
+                onRejectSelected={() =>
+                  setSuggestions((current) => current.filter((suggestion) => !suggestion.selected))
+                }
+                onRejectAll={() => setSuggestions([])}
+              />
               <section className="rounded-3xl border border-slate-700 bg-slate-900/80 p-5">
                 <h2 className="text-lg font-bold text-white">Review controls</h2>
                 <div className="mt-4 grid grid-cols-2 gap-2">

@@ -11,11 +11,13 @@ import {
   type Point,
   type ResizeCorner,
 } from "./redactionGeometry";
+import type { RedactionSuggestion } from "./redactionDetection";
 
 interface Props {
   document: PDFDocumentProxy;
   pageIndex: number;
   rectangles: EditorRectangle[];
+  suggestions: RedactionSuggestion[];
   selectedId: string | null;
   drawMode: boolean;
   editingDisabled: boolean;
@@ -24,6 +26,7 @@ interface Props {
   onAdd: (rectangle: EditorRectangle) => void;
   onChange: (rectangle: EditorRectangle) => void;
   onDelete: (id: string) => void;
+  onToggleSuggestion: (id: string) => void;
   onRenderError: () => void;
 }
 
@@ -45,6 +48,7 @@ export default function RedactionPageCanvas({
   document,
   pageIndex,
   rectangles,
+  suggestions,
   selectedId,
   drawMode,
   editingDisabled,
@@ -53,6 +57,7 @@ export default function RedactionPageCanvas({
   onAdd,
   onChange,
   onDelete,
+  onToggleSuggestion,
   onRenderError,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -241,6 +246,44 @@ export default function RedactionPageCanvas({
           aria-label={`PDF page ${pageIndex + 1}`}
         />
         <div className="absolute inset-0" aria-label="Redaction rectangles">
+          {renderReady &&
+            suggestions.map((suggestion) => {
+              const display = normalizedToDisplay(
+                suggestion,
+                displaySize.width,
+                displaySize.height,
+              );
+              return (
+                <button
+                  key={suggestion.id}
+                  type="button"
+                  disabled={editingDisabled}
+                  aria-label={`${suggestion.selected ? "Selected" : "Unselected"} ${suggestion.category} redaction suggestion`}
+                  aria-pressed={suggestion.selected}
+                  className={`absolute border-2 border-dashed ${
+                    suggestion.selected
+                      ? "border-yellow-300 bg-cyan-500/35 text-yellow-100"
+                      : "border-cyan-300 bg-cyan-500/20 text-cyan-100"
+                  } disabled:cursor-default`}
+                  style={{
+                    left: display.left,
+                    top: display.top,
+                    width: display.width,
+                    height: display.height,
+                  }}
+                  onPointerDown={(event) => event.stopPropagation()}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onToggleSuggestion(suggestion.id);
+                  }}
+                >
+                  <span className="sr-only">
+                    {suggestion.selected ? "Selected" : "Not selected"}
+                  </span>
+                  {suggestion.selected && <span aria-hidden="true">✓</span>}
+                </button>
+              );
+            })}
           {visibleRectangles.map((rectangle) => {
             const display = normalizedToDisplay(rectangle, displaySize.width, displaySize.height);
             const selected = rectangle.id === selectedId;
