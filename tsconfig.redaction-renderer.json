@@ -1,0 +1,25 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "lib": ["ES2022", "DOM", "DOM.Iterable", "ESNext.Float16"],
+    "types": ["node"],
+    "rootDir": "server/redaction",
+    "outDir": "dist/server/redaction",
+    "strict": true,
+    "skipLibCheck": false,
+    "noEmit": false,
+    "noEmitOnError": true,
+    "sourceMap": true,
+    "verbatimModuleSyntax": true,
+    "forceConsistentCasingInFileNames": true,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "noFallthroughCasesInSwitch": true
+  },
+  "files": [
+    "server/redaction/redactionRendererClient.ts",
+    "server/redaction/redactionRendererChild.ts"
+  ]
+}
