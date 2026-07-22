@@ -79,6 +79,7 @@ import {
 import {
   validateDocxFile,
   validatePdfFile,
+  validateXlsxFile,
 } from "./validation/fileValidation";
 
 import {
@@ -1165,6 +1166,101 @@ app.post(
   )
 );
 
+app.post(
+  "/api/conversion-jobs/excel-to-pdf",
+  conversionRateLimiter,
+  upload.single("file"),
+  asyncHandler(
+    async (
+      request,
+      response
+    ) => {
+      const file =
+        validateXlsxFile(
+          request.file,
+          {
+            fieldName:
+              "file",
+
+            maximumSizeBytes:
+              100 *
+              1024 *
+              1024,
+          }
+        );
+
+      const uploadedBasename =
+        basename(
+          file.originalname.replace(
+            /\\/g,
+            "/"
+          )
+        )
+          .replace(
+            /[\u0000-\u001f\u007f]/g,
+            ""
+          ) ||
+        "workbook.xlsx";
+
+      const workbookName =
+        uploadedBasename.replace(
+          /\.xlsx$/i,
+          ""
+        ) ||
+        "workbook";
+
+      const outputFilename =
+        `${workbookName}.pdf`;
+
+      const job =
+        createConversionJob({
+          operation:
+            "excel-to-pdf",
+
+          originalFilename:
+            uploadedBasename,
+
+          outputFilename,
+
+          inputMediaType:
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+
+          outputMediaType:
+            "application/pdf",
+
+          inputBuffer:
+            file.buffer,
+        });
+
+      startConversionJob(
+        job.id
+      );
+
+      const publicJob =
+        getConversionJobPublicData(
+          job.id
+        );
+
+      if (
+        !publicJob ||
+        publicJob.operation !==
+          "excel-to-pdf"
+      ) {
+        throw notFound(
+          "The Excel-to-PDF conversion job could not be created."
+        );
+      }
+
+      response
+        .status(202)
+        .json({
+          job:
+            publicJob,
+        });
+    }
+  )
+);
+
 app.get(
   "/api/conversion-jobs/:jobId",
   asyncHandler(
@@ -1293,13 +1389,22 @@ app.get(
           extension:
             ".docx",
         },
+
+        "excel-to-pdf": {
+          mediaType:
+            "application/pdf",
+          extension:
+            ".pdf",
+        },
       } as const;
 
       const resultType =
         job.operation ===
           "word-to-pdf" ||
         job.operation ===
-          "pdf-to-word"
+          "pdf-to-word" ||
+        job.operation ===
+          "excel-to-pdf"
           ? resultTypes[
               job.operation
             ]

@@ -1,4 +1,5 @@
 import {
+  useEffect,
   useRef,
   useState,
 } from "react";
@@ -8,6 +9,7 @@ import {
   Download,
   FileSpreadsheet,
   FileText,
+  XCircle,
 } from "lucide-react";
 
 import {
@@ -18,14 +20,46 @@ import {
   ProgressService,
 } from "@/core/services/ProgressService";
 
+import {
+  useAbortableTask,
+} from "@/hooks/useAbortableTask";
+
+import {
+  getApiErrorMessage,
+} from "@/lib/apiError";
+
+import {
+  downloadFile,
+  downloadPdf as downloadPdfFile,
+} from "@/lib/downloadFile";
+
 import ExcelPdfOptions from "./ExcelPdfOptions";
 
 import {
   excelPdfService,
   type ExcelPdfMode,
+  type ExcelProgressUpdate,
   type ExcelToPdfResult,
   type PdfToExcelResult,
 } from "./ExcelPdfService";
+
+const excelStageLabels: Record<
+  ExcelProgressUpdate["stage"],
+  string
+> = {
+  uploading: "Uploading",
+  queued: "Queued",
+  validating: "Validating",
+  authenticating: "Authenticating",
+  "creating-asset": "Creating upload asset",
+  submitting: "Submitting",
+  processing: "Processing",
+  downloading: "Downloading",
+  preparing: "Preparing result",
+  completed: "Completed",
+  failed: "Failed",
+  cancelled: "Cancelled",
+};
 
 function formatBytes(
   bytes: number
@@ -50,38 +84,18 @@ function formatBytes(
   ).toFixed(2)} MB`;
 }
 
-function downloadBlob(
-  blob: Blob,
-  filename: string
-) {
-  const url =
-    URL.createObjectURL(
-      blob
-    );
-
-  const link =
-    document.createElement(
-      "a"
-    );
-
-  link.href = url;
-  link.download = filename;
-
-  document.body.appendChild(
-    link
-  );
-
-  link.click();
-  link.remove();
-
-  window.setTimeout(() => {
-    URL.revokeObjectURL(
-      url
-    );
-  }, 1000);
-}
-
 export default function ExcelPdfWorkspace() {
+  const resultSectionRef =
+    useRef<HTMLDivElement | null>(
+      null
+    );
+
+  const mountedRef =
+    useRef(true);
+
+  const conversionContextRef =
+    useRef(0);
+
   const [mode, setMode] =
     useState<ExcelPdfMode>(
       "excel-to-pdf"
@@ -108,11 +122,16 @@ export default function ExcelPdfWorkspace() {
       null
     );
 
-  const [loading, setLoading] =
-    useState(false);
-
   const [progress, setProgress] =
     useState(0);
+
+  const [
+    conversionProgressUpdate,
+    setConversionProgressUpdate,
+  ] =
+    useState<ExcelProgressUpdate | null>(
+      null
+    );
 
   const [error, setError] =
     useState("");
@@ -121,6 +140,27 @@ export default function ExcelPdfWorkspace() {
     useRef(
       new ProgressService()
     );
+
+  const {
+    run: runConversion,
+    cancel: cancelConversion,
+    isRunning: loading,
+  } = useAbortableTask<
+    | ExcelToPdfResult
+    | PdfToExcelResult
+  >();
+
+  useEffect(
+    () => {
+      mountedRef.current = true;
+
+      return () => {
+        mountedRef.current = false;
+        conversionContextRef.current += 1;
+        progressService.current.stop();
+      };
+    }, []
+  );
 
   const clearResults = () => {
     setExcelToPdfResult(
@@ -132,13 +172,44 @@ export default function ExcelPdfWorkspace() {
     );
 
     setProgress(0);
+    setConversionProgressUpdate(
+      null
+    );
     setError("");
   };
+
+  useEffect(
+    () => {
+      if (!excelToPdfResult) {
+        return;
+      }
+
+      const timeout =
+        window.setTimeout(
+          () => {
+            resultSectionRef.current
+              ?.scrollIntoView({
+                behavior: "smooth",
+                block: "start",
+              });
+          },
+          150
+        );
+
+      return () => {
+        window.clearTimeout(
+          timeout
+        );
+      };
+    }, [excelToPdfResult]
+  );
 
   const handleModeChange = (
     nextMode: ExcelPdfMode
   ) => {
+    conversionContextRef.current += 1;
     progressService.current.stop();
+    cancelConversion();
 
     setMode(nextMode);
     setFile(null);
@@ -152,8 +223,10 @@ export default function ExcelPdfWorkspace() {
     );
 
     setProgress(0);
+    setConversionProgressUpdate(
+      null
+    );
     setError("");
-    setLoading(false);
   };
 
   const handleFiles = (
@@ -173,11 +246,21 @@ export default function ExcelPdfWorkspace() {
       mode ===
       "excel-to-pdf"
     ) {
+      const mimeType =
+        selectedFile.type
+          .trim()
+          .toLowerCase();
+
       const isXlsx =
-        selectedFile.type ===
-          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
         filename.endsWith(
           ".xlsx"
+        ) &&
+        (
+          !mimeType ||
+          mimeType ===
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
+          mimeType ===
+            "application/octet-stream"
         );
 
       if (!isXlsx) {
@@ -204,6 +287,10 @@ export default function ExcelPdfWorkspace() {
       }
     }
 
+    conversionContextRef.current += 1;
+    progressService.current.stop();
+    cancelConversion();
+
     setFile(
       selectedFile
     );
@@ -217,8 +304,27 @@ export default function ExcelPdfWorkspace() {
         return;
       }
 
+      const runToken =
+        conversionContextRef.current + 1;
+
+      conversionContextRef.current =
+        runToken;
+
+      const publishProgress = (
+        update: ExcelProgressUpdate
+      ) => {
+        if (
+          mountedRef.current &&
+          conversionContextRef.current ===
+            runToken
+        ) {
+          setConversionProgressUpdate(
+            update
+          );
+        }
+      };
+
       try {
-        setLoading(true);
         setError("");
 
         setExcelToPdfResult(
@@ -229,53 +335,132 @@ export default function ExcelPdfWorkspace() {
           null
         );
 
-        progressService.current.start(
-          setProgress
+        setConversionProgressUpdate(
+          null
         );
 
-        if (
-          mode ===
-          "excel-to-pdf"
-        ) {
-          const result =
-            await excelPdfService.excelToPdf(
-              file
-            );
+        const result =
+          await runConversion(
+            async (signal) => {
+              if (
+                mode ===
+                "excel-to-pdf"
+              ) {
+                return excelPdfService.excelToPdf(
+                  file,
+                  {
+                    signal,
+                    onProgress:
+                      publishProgress,
+                  }
+                );
+              }
 
+              progressService.current.start(
+                (value) => {
+                  if (
+                    mountedRef.current &&
+                    conversionContextRef.current ===
+                      runToken
+                  ) {
+                    setProgress(value);
+                  }
+                }
+              );
+
+              const pdfToExcelResult =
+                await excelPdfService.pdfToExcel(
+                  file,
+                  {
+                    signal,
+                  }
+                );
+
+              progressService.current.finish(
+                (value) => {
+                  if (
+                    mountedRef.current &&
+                    conversionContextRef.current ===
+                      runToken
+                  ) {
+                    setProgress(value);
+                  }
+                }
+              );
+
+              return pdfToExcelResult;
+            }
+          );
+
+        if (
+          !result ||
+          !mountedRef.current ||
+          conversionContextRef.current !==
+            runToken
+        ) {
+          return;
+        }
+
+        if (
+          "outputFilename" in
+          result
+        ) {
           setExcelToPdfResult(
             result
           );
         } else {
-          const result =
-            await excelPdfService.pdfToExcel(
-              file
-            );
-
           setPdfToExcelResult(
             result
           );
         }
-
-        progressService.current.finish(
-          setProgress
-        );
       } catch (
         conversionError
       ) {
+        if (
+          conversionError instanceof
+            Error &&
+          conversionError.name ===
+            "AbortError"
+        ) {
+          return;
+        }
+
+        if (
+          !mountedRef.current ||
+          conversionContextRef.current !==
+            runToken
+        ) {
+          return;
+        }
+
         console.error(
           "Excel/PDF conversion failed:",
           conversionError
         );
 
-        setError(
-          conversionError instanceof
-            Error
-            ? conversionError.message
-            : "The conversion could not be completed."
-        );
+        const errorMessage =
+          getApiErrorMessage(
+            conversionError,
+            "The conversion could not be completed."
+          );
+
+        if (
+          mode ===
+          "excel-to-pdf"
+        ) {
+          setConversionProgressUpdate({
+            stage: "failed",
+            message: errorMessage,
+            progress: {
+              mode: "determinate",
+              value: 0,
+            },
+          });
+        }
+
+        setError(errorMessage);
       } finally {
         progressService.current.stop();
-        setLoading(false);
       }
     };
 
@@ -287,15 +472,9 @@ export default function ExcelPdfWorkspace() {
       return;
     }
 
-    const originalName =
-      file.name.replace(
-        /\.xlsx$/i,
-        ""
-      );
-
-    downloadBlob(
+    downloadPdfFile(
       excelToPdfResult.blob,
-      `${originalName}.pdf`
+      excelToPdfResult.outputFilename
     );
   };
 
@@ -314,15 +493,23 @@ export default function ExcelPdfWorkspace() {
           ""
         );
 
-      downloadBlob(
-        pdfToExcelResult.blob,
-        `${originalName}.xlsx`
-      );
+    downloadFile(
+      pdfToExcelResult.blob,
+      {
+        filename:
+          `${originalName}.xlsx`,
+
+        mimeType:
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      }
+    );
     };
 
   const resetWorkspace =
     () => {
+      conversionContextRef.current += 1;
       progressService.current.stop();
+      cancelConversion();
 
       setFile(null);
 
@@ -335,9 +522,31 @@ export default function ExcelPdfWorkspace() {
       );
 
       setProgress(0);
+      setConversionProgressUpdate(
+        null
+      );
       setError("");
-      setLoading(false);
     };
+
+  const handleCancelConversion =
+    () => {
+      progressService.current.stop();
+      cancelConversion();
+    };
+
+  const determinateProgress =
+    conversionProgressUpdate?.progress.mode ===
+    "determinate"
+      ? Math.max(
+          0,
+          Math.min(
+            100,
+            Math.round(
+              conversionProgressUpdate.progress.value
+            )
+          )
+        )
+      : null;
 
   return (
     <div className="mx-auto max-w-6xl p-8">
@@ -445,14 +654,26 @@ export default function ExcelPdfWorkspace() {
             className="w-full rounded-2xl bg-green-600 px-8 py-4 font-bold text-white transition hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {loading
-              ? `Converting... ${progress}%`
+              ? mode ===
+                  "excel-to-pdf"
+                ? conversionProgressUpdate
+                  ? `${excelStageLabels[conversionProgressUpdate.stage]}${
+                      determinateProgress !==
+                      null
+                        ? `... ${determinateProgress}%`
+                        : "..."
+                    }`
+                  : "Starting conversion..."
+                : `Converting... ${progress}%`
               : mode ===
                   "excel-to-pdf"
                 ? "Convert Excel to PDF"
                 : "Convert PDF to Excel"}
           </button>
 
-          {loading && (
+          {loading &&
+            mode ===
+              "pdf-to-excel" && (
             <div className="mt-4 overflow-hidden rounded-full bg-slate-800">
               <div
                 className="h-3 rounded-full bg-green-600 transition-all duration-200"
@@ -462,12 +683,102 @@ export default function ExcelPdfWorkspace() {
               />
             </div>
           )}
+
+          {conversionProgressUpdate &&
+            mode ===
+              "excel-to-pdf" &&
+            (
+              loading ||
+              conversionProgressUpdate.stage ===
+                "cancelled"
+            ) && (
+            <div className="mt-4 rounded-2xl border border-green-500/20 bg-slate-900 p-5">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm text-slate-400">
+                    Current stage
+                  </p>
+
+                  <p className="mt-1 font-bold text-green-300">
+                    {
+                      excelStageLabels[
+                        conversionProgressUpdate.stage
+                      ]
+                    }
+                  </p>
+                </div>
+
+                <div className="rounded-full border border-green-500/30 bg-green-950/40 px-3 py-1 text-sm font-semibold text-green-300">
+                  {determinateProgress !==
+                  null
+                    ? `${determinateProgress}%`
+                    : "In progress"}
+                </div>
+              </div>
+
+              <div
+                className="mt-4 overflow-hidden rounded-full bg-slate-800"
+                role="progressbar"
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={
+                  determinateProgress ??
+                  undefined
+                }
+                aria-valuetext={
+                  conversionProgressUpdate.message
+                }
+              >
+                {determinateProgress !==
+                null ? (
+                  <div
+                    className="h-3 rounded-full bg-green-500 transition-all duration-200"
+                    style={{
+                      width:
+                        `${determinateProgress}%`,
+                    }}
+                  />
+                ) : (
+                  <div className="h-3 w-full animate-pulse rounded-full bg-green-500/70" />
+                )}
+              </div>
+
+              <p className="mt-4 text-sm text-slate-300">
+                {
+                  conversionProgressUpdate.message
+                }
+              </p>
+
+              <p className="mt-2 text-xs text-slate-500">
+                {determinateProgress !==
+                null
+                  ? "This percentage is based on measurable result-download bytes."
+                  : "This stage does not provide an exact percentage, so Draflio shows activity without inventing one."}
+              </p>
+
+              {loading && (
+                <button
+                  type="button"
+                  onClick={
+                    handleCancelConversion
+                  }
+                  className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-red-500/40 px-4 py-3 font-semibold text-red-300 transition hover:bg-red-950/40"
+                >
+                  <XCircle className="h-5 w-5" />
+                  Cancel conversion
+                </button>
+              )}
+            </div>
+          )}
         </div>
       )}
 
       {excelToPdfResult &&
         file && (
-          <div className="mt-10 overflow-hidden rounded-3xl border border-green-500/30 bg-gradient-to-br from-green-950 via-slate-900 to-slate-950 shadow-2xl">
+          <div
+            ref={resultSectionRef}
+            className="mt-10 scroll-mt-8 overflow-hidden rounded-3xl border border-green-500/30 bg-gradient-to-br from-green-950 via-slate-900 to-slate-950 shadow-2xl"
+          >
             <div className="border-b border-green-500/20 p-8">
               <div className="flex items-center gap-3">
                 <CheckCircle2 className="h-9 w-9 text-green-400" />

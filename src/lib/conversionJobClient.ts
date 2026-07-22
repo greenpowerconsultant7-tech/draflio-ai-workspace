@@ -4,7 +4,7 @@ import { createApiError } from "@/lib/apiError";
 
 import { fetchWithTimeout } from "@/lib/fetchWithTimeout";
 
-export type ConversionJobOperation = "word-to-pdf" | "pdf-to-word";
+export type ConversionJobOperation = "word-to-pdf" | "pdf-to-word" | "excel-to-pdf";
 
 export type ConversionJobStatus = "queued" | "running" | "completed" | "failed" | "cancelled";
 
@@ -112,7 +112,7 @@ function isNonEmptyString(value: unknown): value is string {
 }
 
 function isConversionJobOperation(value: unknown): value is ConversionJobOperation {
-  return value === "word-to-pdf" || value === "pdf-to-word";
+  return value === "word-to-pdf" || value === "pdf-to-word" || value === "excel-to-pdf";
 }
 
 function isConversionJobStatus(value: unknown): value is ConversionJobStatus {
@@ -406,9 +406,11 @@ async function waitForCompletion(initialJob: ConversionJob, options: ConversionJ
 }
 
 async function readResult(job: ConversionJob, options: ConversionJobRunOptions) {
+  const resultLabel = options.operation === "pdf-to-word" ? "Word document" : "PDF";
+
   emitProgress(options.onProgress, {
     stage: "downloading",
-    message: `Downloading the converted ${options.operation === "word-to-pdf" ? "PDF" : "Word document"}.`,
+    message: `Downloading the converted ${resultLabel}.`,
     progress: {
       mode: "indeterminate",
     },
