@@ -111,6 +111,15 @@ import {
 import {
   closeDocumentIntelligenceStore,
 } from "./documentIntelligence/documentIntelligenceSessionStore";
+import {
+  createSummaryRouter,
+} from "./summary/summaryRoutes";
+import {
+  closeSummaryQueue,
+} from "./summary/summaryQueue";
+import {
+  closeSummaryStore,
+} from "./summary/summaryStore";
 
 import {
   cancelOcrJob,
@@ -417,6 +426,13 @@ app.use(
 app.use(
   "/api/document-intelligence/sessions",
   createDocumentIntelligenceRouter(
+    conversionRateLimiter
+  )
+);
+
+app.use(
+  "/api/document-intelligence",
+  createSummaryRouter(
     conversionRateLimiter
   )
 );
@@ -2185,6 +2201,10 @@ async function shutdownServer(
   closeConversionJobStore();
 
   await closeRedactionSessionService();
+
+  await closeSummaryQueue();
+
+  closeSummaryStore();
 
   await closeDocumentIntelligenceQueue();
 

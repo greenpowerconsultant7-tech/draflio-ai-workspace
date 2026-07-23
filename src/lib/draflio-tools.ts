@@ -20,7 +20,7 @@ export const DRAFLIO_TOOLS: DraflioTool[] = [
   { id: "ai-chat",       name: "Chat with PDF",       description: "Ask any question about your document.", icon: MessagesSquare, category: "AI", gradient: "from-primary to-accent", featured: true },
   { id: "ai-search",     name: "AI Search",           description: "Natural language search across pages.", icon: Search,        category: "AI", gradient: "from-accent to-primary", featured: true },
   { id: "smart-ocr",     name: "Smart OCR",           description: "Scanned to editable, with formatting.", icon: ScanText,      category: "AI", gradient: "from-primary to-chart-3", featured: true },
-  { id: "summarize",     name: "Summarize",           description: "One-click executive summary.",           icon: Sparkles,      category: "AI", gradient: "from-accent to-chart-4" },
+  { id: "summarize",     name: "Summarize PDF",       description: "Create a page-referenced extractive summary of a searchable PDF.", icon: Sparkles, category: "AI", gradient: "from-accent to-chart-4" },
   { id: "extract",       name: "Smart Extraction",    description: "Dates, GST, PAN, emails, tables.",       icon: FileSearch,    category: "AI", gradient: "from-primary to-accent" },
   { id: "translate",     name: "Translate",           description: "Translate documents into 40+ langs.",    icon: Languages,     category: "AI", gradient: "from-accent to-primary" },
   { id: "extract-table", name: "Extract Tables",      description: "Pull tables into Excel & CSV.",          icon: Table,         category: "AI", gradient: "from-chart-3 to-primary" },

@@ -19,6 +19,7 @@ import InvoiceWorkspace from "@/features/invoice/InvoiceWorkspace";
 import HtmlPdfWorkspace from "@/features/html/HtmlPdfWorkspace";
 import RedactionWorkspace from "@/features/redaction/RedactionWorkspace";
 import PageNumberWorkspace from "@/features/pageNumbers/PageNumberWorkspace";
+import SummaryWorkspace from "@/features/summarize/SummaryWorkspace";
 
 export const Route = createFileRoute("/tools/$toolId")({
   loader: ({ params }) => {
@@ -32,7 +33,9 @@ export const Route = createFileRoute("/tools/$toolId")({
       meta: [
         {
           title:
-            tool?.id === "add-page-numbers"
+            tool?.id === "summarize"
+              ? "Summarize PDF | Draflio"
+              : tool?.id === "add-page-numbers"
               ? "Add Page Numbers to PDF | Draflio"
               : tool
                 ? `${tool.name} · Draflio`
@@ -41,7 +44,9 @@ export const Route = createFileRoute("/tools/$toolId")({
         {
           name: "description",
           content:
-            tool?.id === "add-page-numbers"
+            tool?.id === "summarize"
+              ? "Create a page-referenced extractive summary, key points, and possible action items from a searchable PDF."
+              : tool?.id === "add-page-numbers"
               ? "Add customizable page numbers to selected PDF pages while preserving the original document quality."
               : tool?.description ?? "AI document tool.",
         },
@@ -139,6 +144,10 @@ if (tool.id === "redact") {
 
 if (tool.id === "add-page-numbers") {
   return <PageNumberWorkspace />;
+}
+
+if (tool.id === "summarize") {
+  return <SummaryWorkspace />;
 }
 
   return (

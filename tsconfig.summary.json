@@ -1,0 +1,17 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": ["node", "multer", "vite/client"],
+    "lib": ["ES2022", "DOM", "DOM.Iterable", "ESNext.Float16"],
+    "skipLibCheck": false,
+    "noEmit": true
+  },
+  "include": [
+    "shared/summaryTypes.ts",
+    "server/summary/**/*.ts",
+    "src/lib/documentIntelligenceClient.ts",
+    "src/features/summarize/**/*.ts",
+    "src/features/summarize/**/*.tsx",
+    "scripts/test-summary-*.ts"
+  ]
+}
