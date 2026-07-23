@@ -558,7 +558,7 @@ const downloadWordDocument =
 
       {file && (
         <p className="mt-3 text-sm text-slate-400">
-          Selected OCR language:{" "}
+          OCR recognition language:{" "}
           {
             getOcrLanguage(
               options.language
@@ -771,7 +771,7 @@ const downloadWordDocument =
 
               <div className="rounded-2xl bg-slate-800/60 p-5">
                 <p className="text-sm text-slate-400">
-                  Document language
+                  OCR recognition language
                 </p>
 
                 <p className="mt-2 text-2xl font-bold text-white">

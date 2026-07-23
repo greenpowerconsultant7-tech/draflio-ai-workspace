@@ -35,7 +35,7 @@ export default function OcrPdfOptions({
           className="mb-2 flex items-center gap-2 font-semibold text-white"
         >
           <Languages className="h-5 w-5 text-cyan-400" />
-          Document language
+          Language already used in the document
         </label>
         <input
           id="ocr-language-search"
@@ -47,7 +47,7 @@ export default function OcrPdfOptions({
           className="mb-3 w-full rounded-xl border border-slate-700 bg-slate-800 p-3 text-white outline-none focus-visible:border-cyan-500 focus-visible:ring-2 focus-visible:ring-cyan-500 disabled:opacity-60"
         />
         <select
-          aria-label="Document language"
+          aria-label="Language already used in the document"
           value={options.language}
           disabled={locked}
           onChange={(event) => {
@@ -71,12 +71,15 @@ export default function OcrPdfOptions({
           )}
         </select>
         <p className="mt-2 text-sm text-slate-400">
-          Choose the primary language used in the scanned document. Selecting the closest language
-          generally improves recognition.
+          Choose the main language currently visible in the scanned PDF. This improves OCR text
+          recognition and does not translate the document.
         </p>
         <p className="mt-2 text-sm text-amber-300">
-          Documents containing several languages may have lower recognition accuracy. Choose the
-          primary document language.
+          For documents containing multiple languages, choose the primary language. Recognition
+          accuracy may vary for other languages.
+        </p>
+        <p className="mt-2 rounded-lg border border-cyan-500/20 bg-cyan-950/30 p-3 text-sm text-cyan-200">
+          OCR recognizes existing text. It does not translate text into another language.
         </p>
       </div>
 

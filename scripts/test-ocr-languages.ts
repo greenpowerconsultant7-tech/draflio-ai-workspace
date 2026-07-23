@@ -192,6 +192,27 @@ async function run() {
   );
   assert.match(serviceSource, /signal,/);
   assert.doesNotMatch(serviceSource, /localStorage|sessionStorage|indexedDB|document\.cookie/);
+  const optionsSource = await readFile(
+    new URL("../src/features/ocr/OcrPdfOptions.tsx", import.meta.url),
+    "utf8",
+  );
+  const workspaceSource = await readFile(
+    new URL("../src/features/ocr/OcrPdfWorkspace.tsx", import.meta.url),
+    "utf8",
+  );
+  assert.match(optionsSource, /Language already used in the document/);
+  assert.match(
+    optionsSource,
+    /OCR recognizes existing text\. It does not translate text into another language\./,
+  );
+  assert.match(workspaceSource, /OCR recognition language/);
+  assert.doesNotMatch(
+    `${optionsSource}\n${workspaceSource}`,
+    /Output language|Translation language|Convert to language|Detected language|Translate to|Document language/i,
+  );
+  assert.match(workspaceSource, /DEFAULT_OCR_LANGUAGE_CODE/);
+  assert.match(optionsSource, /disabled=\{locked\}/);
+  assert.match(optionsSource, /isOcrLanguageCode\(language\)/);
   const jobServiceSource = await readFile(
     new URL("../server/ocr/ocrJobService.ts", import.meta.url),
     "utf8",
