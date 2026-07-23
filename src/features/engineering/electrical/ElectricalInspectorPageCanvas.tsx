@@ -29,7 +29,11 @@ export function ElectricalInspectorPageCanvas({
       const page = await document.getPage(pageIndex + 1);
       if (!active) return;
       const base = page.getViewport({ scale: 1, rotation: page.rotate });
-      const available = Math.min(canvas.parentElement?.clientWidth ?? 800, 1000);
+      const previewWidth = canvas.parentElement?.parentElement?.clientWidth;
+      const available = Math.min(
+        previewWidth && previewWidth > 32 ? previewWidth - 32 : base.width,
+        1000,
+      );
       const scale = Math.min(2, available / base.width);
       const viewport = page.getViewport({ scale, rotation: page.rotate });
       const ratio = Math.min(window.devicePixelRatio || 1, 2);
@@ -79,7 +83,7 @@ export function ElectricalInspectorPageCanvas({
         className="block max-w-full"
         aria-label={`PDF page ${pageIndex + 1}`}
       />
-      <div className="absolute inset-0">
+      <div className="absolute inset-0 z-10">
         {pageRecords.map((record, index) => {
           const rectangle = record.normalizedRectangle;
           if (!rectangle) return null;

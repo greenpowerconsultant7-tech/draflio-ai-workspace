@@ -65,6 +65,36 @@ assert.equal(detected[0]?.equipmentType, "power-transformer");
 assert.equal(detected[0]?.voltageRatio, "33/11 kV");
 assert.equal(detected[0]?.apparentPower, "10 MVA");
 
+const rotatedFragments: TextFragment[] = [
+  {
+    value: "TR-01",
+    pageIndex: 1,
+    rectangle: { x: 0.1, y: 0.1, width: 0.02, height: 0.06 },
+  },
+  {
+    value: "12.5 MVA",
+    pageIndex: 1,
+    rectangle: { x: 0.2, y: 0.1, width: 0.02, height: 0.09 },
+  },
+  {
+    value: "CB-02",
+    pageIndex: 1,
+    rectangle: { x: 0.3, y: 0.1, width: 0.02, height: 0.06 },
+  },
+  {
+    value: "20 kA",
+    pageIndex: 1,
+    rectangle: { x: 0.4, y: 0.1, width: 0.02, height: 0.05 },
+  },
+];
+const rotatedDetected = detectPageEquipment(rotatedFragments);
+assert.deepEqual(
+  rotatedDetected.map((record) => record.equipmentId),
+  ["TR-01", "CB-02"],
+);
+assert.equal(rotatedDetected[0]?.apparentPower, "12.5 MVA");
+assert.equal(rotatedDetected[1]?.interruptingCurrent, "20 kA");
+
 const examples: Record<(typeof EQUIPMENT_TYPES)[number], string> = {
   "power-transformer": "TR-01",
   "circuit-breaker": "CB-01",

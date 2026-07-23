@@ -59,6 +59,11 @@ export function ElectricalInspectorWorkspace() {
   const [tab, setTab] = useState<Tab>("equipment");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<ReviewStatus | "all">("all");
+  const [pageFilter, setPageFilter] = useState<number | "all">("all");
+  const [typeFilter, setTypeFilter] = useState<EquipmentType | "all">("all");
+  const [confidenceFilter, setConfidenceFilter] = useState<EquipmentRecord["confidence"] | "all">(
+    "all",
+  );
   const [includeReview, setIncludeReview] = useState(false);
   const documentRef = useRef<PDFDocumentProxy | null>(null);
   const loadingTaskRef = useRef<PDFDocumentLoadingTask | null>(null);
@@ -90,6 +95,9 @@ export function ElectricalInspectorWorkspace() {
     setTab("equipment");
     setSearch("");
     setStatusFilter("all");
+    setPageFilter("all");
+    setTypeFilter("all");
+    setConfidenceFilter("all");
     setIncludeReview(false);
     setFileBase("drawing");
     if (inputRef.current) inputRef.current.value = "";
@@ -155,6 +163,9 @@ export function ElectricalInspectorWorkspace() {
     return records.filter(
       (record) =>
         (statusFilter === "all" || record.status === statusFilter) &&
+        (pageFilter === "all" || record.pageIndex === pageFilter) &&
+        (typeFilter === "all" || record.equipmentType === typeFilter) &&
+        (confidenceFilter === "all" || record.confidence === confidenceFilter) &&
         (!needle ||
           [
             record.equipmentId,
@@ -168,7 +179,7 @@ export function ElectricalInspectorWorkspace() {
             record.ratio,
           ].some((value) => value.toLowerCase().includes(needle))),
     );
-  }, [records, search, statusFilter]);
+  }, [confidenceFilter, pageFilter, records, search, statusFilter, typeFilter]);
 
   const updateRecord = (id: string, patch: Partial<EquipmentRecord>) => {
     setRecords((current) =>
@@ -472,6 +483,53 @@ export function ElectricalInspectorWorkspace() {
                       <option value="review">Review</option>
                       <option value="accepted">Accepted</option>
                       <option value="rejected">Rejected</option>
+                    </select>
+                    <select
+                      aria-label="Filter by page"
+                      value={pageFilter}
+                      onChange={(event) =>
+                        setPageFilter(
+                          event.target.value === "all" ? "all" : Number(event.target.value),
+                        )
+                      }
+                      className="rounded-lg border bg-background px-3 py-2 text-sm"
+                    >
+                      <option value="all">All pages</option>
+                      {result.pages.map((page) => (
+                        <option key={page.pageIndex} value={page.pageIndex}>
+                          Page {page.pageIndex + 1}
+                        </option>
+                      ))}
+                    </select>
+                    <select
+                      aria-label="Filter by equipment type"
+                      value={typeFilter}
+                      onChange={(event) =>
+                        setTypeFilter(event.target.value as EquipmentType | "all")
+                      }
+                      className="rounded-lg border bg-background px-3 py-2 text-sm"
+                    >
+                      <option value="all">All equipment types</option>
+                      {EQUIPMENT_TYPES.map((type) => (
+                        <option key={type} value={type}>
+                          {type}
+                        </option>
+                      ))}
+                    </select>
+                    <select
+                      aria-label="Filter by confidence"
+                      value={confidenceFilter}
+                      onChange={(event) =>
+                        setConfidenceFilter(
+                          event.target.value as EquipmentRecord["confidence"] | "all",
+                        )
+                      }
+                      className="rounded-lg border bg-background px-3 py-2 text-sm"
+                    >
+                      <option value="all">All confidence levels</option>
+                      <option value="high">High confidence</option>
+                      <option value="medium">Medium confidence</option>
+                      <option value="low">Low confidence</option>
                     </select>
                     <button
                       type="button"

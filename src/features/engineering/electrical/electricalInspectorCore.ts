@@ -189,22 +189,68 @@ function distance(a: NormalizedRectangle, b: NormalizedRectangle): number {
 }
 
 export function detectPageEquipment(fragments: TextFragment[], startOrder = 0): EquipmentRecord[] {
-  const grouped = groupTextFragments(fragments);
-  const candidates = grouped.filter((fragment) => detectEquipmentType(fragment.value));
+  const rawCandidates = fragments.filter((fragment) => detectEquipmentType(fragment.value));
+  const groupedCandidates = groupTextFragments(fragments).filter(
+    (fragment) =>
+      detectEquipmentType(fragment.value) &&
+      !rawCandidates.some(
+        (candidate) =>
+          candidate.pageIndex === fragment.pageIndex &&
+          candidate.rectangle.x >= fragment.rectangle.x - 0.002 &&
+          candidate.rectangle.y >= fragment.rectangle.y - 0.002 &&
+          candidate.rectangle.x + candidate.rectangle.width <=
+            fragment.rectangle.x + fragment.rectangle.width + 0.002 &&
+          candidate.rectangle.y + candidate.rectangle.height <=
+            fragment.rectangle.y + fragment.rectangle.height + 0.002,
+      ),
+  );
+  const initialCandidates = [...rawCandidates, ...groupedCandidates];
+  const candidates = initialCandidates.filter((candidate) => {
+    if (extractEquipmentId(candidate.value)) return true;
+    const type = detectEquipmentType(candidate.value);
+    return !initialCandidates.some(
+      (other) =>
+        other !== candidate &&
+        detectEquipmentType(other.value) === type &&
+        Boolean(extractEquipmentId(other.value)) &&
+        distance(candidate.rectangle, other.rectangle) < 0.1,
+    );
+  });
+  const ratingAssignments = new Map<TextFragment, TextFragment>();
+  for (const fragment of fragments) {
+    if (candidates.includes(fragment)) continue;
+    const fragmentRatings = extractRatings(fragment.value);
+    const closest = candidates
+      .map((candidate) => ({
+        candidate,
+        distance: distance(candidate.rectangle, fragment.rectangle),
+        compatibility:
+          (fragmentRatings.apparentPower || fragmentRatings.vectorGroup) &&
+          detectEquipmentType(candidate.value) === "power-transformer"
+            ? 0.06
+            : fragmentRatings.interruptingCurrent &&
+                detectEquipmentType(candidate.value) === "circuit-breaker"
+              ? 0.06
+              : fragmentRatings.ratio &&
+                  detectEquipmentType(candidate.value) === "current-transformer"
+                ? 0.06
+                : fragmentRatings.activePower && detectEquipmentType(candidate.value) === "inverter"
+                  ? 0.06
+                  : 0,
+      }))
+      .filter((entry) => entry.distance <= 0.18)
+      .sort((a, b) => a.distance - a.compatibility - (b.distance - b.compatibility))[0];
+    if (closest) ratingAssignments.set(fragment, closest.candidate);
+  }
   return candidates.slice(0, 1_000 - startOrder).map((candidate, index) => {
     const equipmentType = detectEquipmentType(candidate.value) ?? "unknown-electrical-item";
-    const nearby = grouped
-      .filter(
-        (fragment) =>
-          fragment !== candidate &&
-          fragment.pageIndex === candidate.pageIndex &&
-          distance(candidate.rectangle, fragment.rectangle) <= 0.18,
-      )
+    const nearby = fragments
+      .filter((fragment) => ratingAssignments.get(fragment) === candidate)
       .sort(
         (a, b) =>
           distance(candidate.rectangle, a.rectangle) - distance(candidate.rectangle, b.rectangle),
       )
-      .slice(0, 6);
+      .slice(0, 8);
     const combined = [candidate.value, ...nearby.map((fragment) => fragment.value)].join(" ");
     const rating = extractRatings(combined);
     const equipmentId = extractEquipmentId(candidate.value);
