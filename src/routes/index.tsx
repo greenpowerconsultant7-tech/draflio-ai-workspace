@@ -6,7 +6,7 @@ import { AICommandBar } from "@/components/draflio/AICommandBar";
 import { ToolsGrid } from "@/components/draflio/ToolsGrid";
 import { TrustSection, HowItWorks } from "@/components/draflio/TrustSection";
 import { Pricing, Testimonials, FAQ } from "@/components/draflio/Pricing";
-import { ArrowRight, Sparkles } from "lucide-react";
+import { ArrowRight, CircuitBoard, Sparkles } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   component: Home,
@@ -19,7 +19,10 @@ function Home() {
       <main>
         {/* HERO */}
         <section className="relative overflow-hidden pt-16 pb-24 sm:pt-24">
-          <div className="pointer-events-none absolute inset-0 -z-10" style={{ background: "var(--gradient-hero)" }} />
+          <div
+            className="pointer-events-none absolute inset-0 -z-10"
+            style={{ background: "var(--gradient-hero)" }}
+          />
           <div className="pointer-events-none absolute inset-0 -z-10 grid-bg" />
 
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -34,8 +37,8 @@ function Home() {
                 <span className="text-foreground">AI document workspace</span>
               </h1>
               <p className="mx-auto mt-6 max-w-2xl text-base text-muted-foreground sm:text-lg">
-                Merge, split, convert, compress, search, analyze and chat with your documents using AI —
-                all in one premium workspace.
+                Merge, split, convert, compress, search, analyze and chat with your documents using
+                AI — all in one premium workspace.
               </p>
 
               <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
@@ -65,6 +68,34 @@ function Home() {
         </section>
 
         <ToolsGrid />
+        <section className="border-y border-glass-border bg-card/20 py-16">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div className="relative overflow-hidden rounded-3xl border border-primary/25 bg-card/60 p-8 shadow-[var(--shadow-card)] sm:p-12">
+              <div className="pointer-events-none absolute right-0 top-0 h-48 w-48 rounded-full bg-primary/15 blur-3xl" />
+              <div className="relative max-w-3xl">
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/15 text-primary-glow">
+                  <CircuitBoard aria-hidden="true" className="h-5 w-5" />
+                </div>
+                <p className="mt-5 text-sm font-semibold uppercase tracking-widest text-primary-glow">
+                  Built for Engineers
+                </p>
+                <h2 className="mt-3 text-3xl font-bold sm:text-4xl">
+                  Technical drawings deserve specialized tools
+                </h2>
+                <p className="mt-4 max-w-2xl leading-7 text-muted-foreground">
+                  Analyze technical drawings, extract structured quantities, review specifications,
+                  and prepare engineering deliverables.
+                </p>
+                <Link
+                  to="/engineering"
+                  className="mt-7 inline-flex items-center gap-2 rounded-xl gradient-brand px-6 py-3 text-sm font-semibold text-primary-foreground shadow-glow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  Explore Draflio Engineering <ArrowRight aria-hidden="true" className="h-4 w-4" />
+                </Link>
+              </div>
+            </div>
+          </div>
+        </section>
         <HowItWorks />
         <TrustSection />
         <Testimonials />
@@ -75,13 +106,17 @@ function Home() {
         <section className="relative py-24">
           <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
             <div className="relative overflow-hidden rounded-3xl glass-strong p-10 text-center shadow-glow sm:p-16">
-              <div className="pointer-events-none absolute inset-0 opacity-40" style={{ background: "var(--gradient-hero)" }} />
+              <div
+                className="pointer-events-none absolute inset-0 opacity-40"
+                style={{ background: "var(--gradient-hero)" }}
+              />
               <div className="relative">
                 <h2 className="text-3xl font-bold gradient-text sm:text-5xl">
                   Ready to work smarter with documents?
                 </h2>
                 <p className="mx-auto mt-4 max-w-xl text-base text-muted-foreground">
-                  Join the teams replacing Adobe Acrobat, iLovePDF and Smallpdf with a single AI-native workspace.
+                  Join the teams replacing Adobe Acrobat, iLovePDF and Smallpdf with a single
+                  AI-native workspace.
                 </p>
                 <Link
                   to="/app"

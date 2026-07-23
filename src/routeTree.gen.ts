@@ -21,7 +21,9 @@ import { Route as AppRouteImport } from './routes/app'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ToolsIndexRouteImport } from './routes/tools.index'
+import { Route as EngineeringIndexRouteImport } from './routes/engineering.index'
 import { Route as ToolsToolIdRouteImport } from './routes/tools.$toolId'
+import { Route as EngineeringElectricalRouteImport } from './routes/engineering.electrical'
 
 const WorkspaceRoute = WorkspaceRouteImport.update({
   id: '/workspace',
@@ -83,9 +85,19 @@ const ToolsIndexRoute = ToolsIndexRouteImport.update({
   path: '/tools/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EngineeringIndexRoute = EngineeringIndexRouteImport.update({
+  id: '/engineering/',
+  path: '/engineering/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ToolsToolIdRoute = ToolsToolIdRouteImport.update({
   id: '/tools/$toolId',
   path: '/tools/$toolId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EngineeringElectricalRoute = EngineeringElectricalRouteImport.update({
+  id: '/engineering/electrical',
+  path: '/engineering/electrical',
   getParentRoute: () => rootRouteImport,
 } as any)
 
@@ -101,7 +113,9 @@ export interface FileRoutesByFullPath {
   '/terms': typeof TermsRoute
   '/upload': typeof UploadRoute
   '/workspace': typeof WorkspaceRoute
+  '/engineering/electrical': typeof EngineeringElectricalRoute
   '/tools/$toolId': typeof ToolsToolIdRoute
+  '/engineering/': typeof EngineeringIndexRoute
   '/tools/': typeof ToolsIndexRoute
 }
 export interface FileRoutesByTo {
@@ -116,7 +130,9 @@ export interface FileRoutesByTo {
   '/terms': typeof TermsRoute
   '/upload': typeof UploadRoute
   '/workspace': typeof WorkspaceRoute
+  '/engineering/electrical': typeof EngineeringElectricalRoute
   '/tools/$toolId': typeof ToolsToolIdRoute
+  '/engineering': typeof EngineeringIndexRoute
   '/tools': typeof ToolsIndexRoute
 }
 export interface FileRoutesById {
@@ -132,7 +148,9 @@ export interface FileRoutesById {
   '/terms': typeof TermsRoute
   '/upload': typeof UploadRoute
   '/workspace': typeof WorkspaceRoute
+  '/engineering/electrical': typeof EngineeringElectricalRoute
   '/tools/$toolId': typeof ToolsToolIdRoute
+  '/engineering/': typeof EngineeringIndexRoute
   '/tools/': typeof ToolsIndexRoute
 }
 export interface FileRouteTypes {
@@ -149,7 +167,9 @@ export interface FileRouteTypes {
     | '/terms'
     | '/upload'
     | '/workspace'
+    | '/engineering/electrical'
     | '/tools/$toolId'
+    | '/engineering/'
     | '/tools/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -164,7 +184,9 @@ export interface FileRouteTypes {
     | '/terms'
     | '/upload'
     | '/workspace'
+    | '/engineering/electrical'
     | '/tools/$toolId'
+    | '/engineering'
     | '/tools'
   id:
     | '__root__'
@@ -179,7 +201,9 @@ export interface FileRouteTypes {
     | '/terms'
     | '/upload'
     | '/workspace'
+    | '/engineering/electrical'
     | '/tools/$toolId'
+    | '/engineering/'
     | '/tools/'
   fileRoutesById: FileRoutesById
 }
@@ -195,7 +219,9 @@ export interface RootRouteChildren {
   TermsRoute: typeof TermsRoute
   UploadRoute: typeof UploadRoute
   WorkspaceRoute: typeof WorkspaceRoute
+  EngineeringElectricalRoute: typeof EngineeringElectricalRoute
   ToolsToolIdRoute: typeof ToolsToolIdRoute
+  EngineeringIndexRoute: typeof EngineeringIndexRoute
   ToolsIndexRoute: typeof ToolsIndexRoute
 }
 
@@ -285,11 +311,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ToolsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/engineering/': {
+      id: '/engineering/'
+      path: '/engineering'
+      fullPath: '/engineering/'
+      preLoaderRoute: typeof EngineeringIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/tools/$toolId': {
       id: '/tools/$toolId'
       path: '/tools/$toolId'
       fullPath: '/tools/$toolId'
       preLoaderRoute: typeof ToolsToolIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/engineering/electrical': {
+      id: '/engineering/electrical'
+      path: '/engineering/electrical'
+      fullPath: '/engineering/electrical'
+      preLoaderRoute: typeof EngineeringElectricalRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -307,7 +347,9 @@ const rootRouteChildren: RootRouteChildren = {
   TermsRoute: TermsRoute,
   UploadRoute: UploadRoute,
   WorkspaceRoute: WorkspaceRoute,
+  EngineeringElectricalRoute: EngineeringElectricalRoute,
   ToolsToolIdRoute: ToolsToolIdRoute,
+  EngineeringIndexRoute: EngineeringIndexRoute,
   ToolsIndexRoute: ToolsIndexRoute,
 }
 export const routeTree = rootRouteImport
