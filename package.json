@@ -7,6 +7,7 @@
     "dev": "vite dev",
     "build": "vite build",
     "build:redaction-renderer": "tsc -p tsconfig.redaction-renderer.json",
+    "build:document-intelligence": "tsc -p tsconfig.document-intelligence.json",
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "lint": "eslint .",

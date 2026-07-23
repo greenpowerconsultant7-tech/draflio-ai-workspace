@@ -102,6 +102,15 @@ import {
 import {
   closeRedactionSessionService,
 } from "./redaction/redactionSessionService";
+import {
+  createDocumentIntelligenceRouter,
+} from "./documentIntelligence/documentIntelligenceRoutes";
+import {
+  closeDocumentIntelligenceQueue,
+} from "./documentIntelligence/documentIntelligenceQueue";
+import {
+  closeDocumentIntelligenceStore,
+} from "./documentIntelligence/documentIntelligenceSessionStore";
 
 import {
   cancelOcrJob,
@@ -401,6 +410,13 @@ const conversionRateLimiter =
 app.use(
   "/api/redaction-sessions",
   createRedactionRouter(
+    conversionRateLimiter
+  )
+);
+
+app.use(
+  "/api/document-intelligence/sessions",
+  createDocumentIntelligenceRouter(
     conversionRateLimiter
   )
 );
@@ -2169,6 +2185,10 @@ async function shutdownServer(
   closeConversionJobStore();
 
   await closeRedactionSessionService();
+
+  await closeDocumentIntelligenceQueue();
+
+  closeDocumentIntelligenceStore();
 
 try {
   await closeHtmlPdfBrowser();
