@@ -2,7 +2,7 @@ import {
   FileText, Merge, Split, Minimize2, RotateCw, Lock, Unlock,
   FileType, FileSpreadsheet, Presentation, Image as ImageIcon,
   Droplets, PenLine, ScanText, Languages, MessagesSquare,
-  Search, Sparkles, Table, FileSearch, Wand2, ShieldX,
+  Search, Sparkles, Table, FileSearch, Wand2, ShieldX, Hash,
   type LucideIcon,
 } from "lucide-react";
 
@@ -31,6 +31,7 @@ export const DRAFLIO_TOOLS: DraflioTool[] = [
 
   { id: "compress",      name: "Compress PDF",        description: "Reduce file size with smart quality.",   icon: Minimize2,     category: "Optimize", gradient: "from-chart-4 to-primary" },
   { id: "watermark",     name: "Watermark",           description: "Add text or image watermarks.",           icon: Droplets,      category: "Edit",     gradient: "from-accent to-primary" },
+  { id: "add-page-numbers", name: "Add Page Numbers", description: "Add customizable page numbers to a PDF while preserving the original document quality.", icon: Hash, category: "Edit", gradient: "from-cyan-500 to-primary" },
   { id: "sign",          name: "Sign PDF",            description: "Draw, type, or upload signatures.",       icon: PenLine,       category: "Edit",     gradient: "from-accent to-accent-glow" },
   { id: "redact",        name: "Redact PDF",          description: "Permanently mask selected PDF areas.",     icon: ShieldX,       category: "Secure",   gradient: "from-red-500 to-primary" },
 

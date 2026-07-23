@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.json",
+  "include": [
+    "src/features/pageNumbers/**/*.ts",
+    "src/features/pageNumbers/**/*.tsx",
+    "scripts/test-page-numbers.ts"
+  ],
+  "compilerOptions": {
+    "skipLibCheck": false,
+    "types": ["node", "vite/client", "react", "react-dom"]
+  }
+}

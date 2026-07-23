@@ -18,6 +18,7 @@ import OcrPdfWorkspace from "@/features/ocr/OcrPdfWorkspace";
 import InvoiceWorkspace from "@/features/invoice/InvoiceWorkspace";
 import HtmlPdfWorkspace from "@/features/html/HtmlPdfWorkspace";
 import RedactionWorkspace from "@/features/redaction/RedactionWorkspace";
+import PageNumberWorkspace from "@/features/pageNumbers/PageNumberWorkspace";
 
 export const Route = createFileRoute("/tools/$toolId")({
   loader: ({ params }) => {
@@ -29,8 +30,21 @@ export const Route = createFileRoute("/tools/$toolId")({
     const tool = loaderData?.toolId ? TOOL_BY_ID[loaderData.toolId] : undefined;
     return {
       meta: [
-        { title: tool ? `${tool.name} · Draflio` : "Tool · Draflio" },
-        { name: "description", content: tool?.description ?? "AI document tool." },
+        {
+          title:
+            tool?.id === "add-page-numbers"
+              ? "Add Page Numbers to PDF | Draflio"
+              : tool
+                ? `${tool.name} · Draflio`
+                : "Tool · Draflio",
+        },
+        {
+          name: "description",
+          content:
+            tool?.id === "add-page-numbers"
+              ? "Add customizable page numbers to selected PDF pages while preserving the original document quality."
+              : tool?.description ?? "AI document tool.",
+        },
       ],
     };
   },
@@ -121,6 +135,10 @@ if (tool.id === "html-to-pdf") {
 
 if (tool.id === "redact") {
   return <RedactionWorkspace />;
+}
+
+if (tool.id === "add-page-numbers") {
+  return <PageNumberWorkspace />;
 }
 
   return (
