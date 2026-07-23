@@ -1,103 +1,82 @@
+import { useState } from "react";
+import { FileType2, Languages, ScanText } from "lucide-react";
 import {
-  FileType2,
-  Languages,
-  ScanText,
-} from "lucide-react";
-
-import type {
-  OcrLanguage,
-  OcrPdfOptions as OcrOptions,
-} from "./OcrPdfService";
+  isOcrLanguageCode,
+  searchOcrLanguages,
+} from "../../../shared/ocrLanguages";
+import type { OcrPdfOptions as OcrOptions } from "./OcrPdfService";
 
 type Props = {
   options: OcrOptions;
-
-  onOptionsChange: (
-    options: OcrOptions
-  ) => void;
+  onOptionsChange: (options: OcrOptions) => void;
+  locked?: boolean;
 };
 
 export default function OcrPdfOptions({
   options,
   onOptionsChange,
+  locked = false,
 }: Props) {
-  const updateOptions = (
-    changes: Partial<OcrOptions>
-  ) => {
-    onOptionsChange({
-      ...options,
-      ...changes,
-    });
-  };
+  const [languageSearch, setLanguageSearch] = useState("");
+  const filteredLanguages = searchOcrLanguages(languageSearch);
+  const updateOptions = (changes: Partial<OcrOptions>) =>
+    onOptionsChange({ ...options, ...changes });
 
   return (
     <div className="mt-8 space-y-6 rounded-2xl border border-slate-700 bg-slate-900 p-6">
       <div className="flex items-center gap-3">
         <ScanText className="h-7 w-7 text-cyan-400" />
-
-        <h2 className="text-2xl font-bold text-white">
-          OCR Settings
-        </h2>
+        <h2 className="text-2xl font-bold text-white">OCR Settings</h2>
       </div>
 
       <div>
-        <label className="mb-2 flex items-center gap-2 font-semibold text-white">
-          <Languages className="h-5 w-5 text-cyan-400" />
-
-          Document Language
-        </label>
-
-        <select
-          value={
-            options.language
-          }
-          onChange={(
-            event
-          ) =>
-            updateOptions({
-              language:
-                event.target
-                  .value as OcrLanguage,
-            })
-          }
-          className="w-full rounded-xl border border-slate-700 bg-slate-800 p-3 text-white outline-none focus:border-cyan-500"
+        <label
+          htmlFor="ocr-language-search"
+          className="mb-2 flex items-center gap-2 font-semibold text-white"
         >
-          <option value="en-US">
-            English — United States
-          </option>
-
-          <option value="en-GB">
-            English — United Kingdom
-          </option>
-
-          <option value="fr-FR">
-            French
-          </option>
-
-          <option value="de-DE">
-            German
-          </option>
-
-          <option value="es-ES">
-            Spanish
-          </option>
-
-          <option value="it-IT">
-            Italian
-          </option>
-
-          <option value="pt-BR">
-            Portuguese — Brazil
-          </option>
-
-          <option value="nl-NL">
-            Dutch
-          </option>
+          <Languages className="h-5 w-5 text-cyan-400" />
+          Document language
+        </label>
+        <input
+          id="ocr-language-search"
+          type="search"
+          value={languageSearch}
+          disabled={locked}
+          onChange={(event) => setLanguageSearch(event.target.value)}
+          placeholder="Search by language, region, or locale code"
+          className="mb-3 w-full rounded-xl border border-slate-700 bg-slate-800 p-3 text-white outline-none focus-visible:border-cyan-500 focus-visible:ring-2 focus-visible:ring-cyan-500 disabled:opacity-60"
+        />
+        <select
+          aria-label="Document language"
+          value={options.language}
+          disabled={locked}
+          onChange={(event) => {
+            const language = event.target.value;
+            if (isOcrLanguageCode(language)) {
+              updateOptions({ language });
+            }
+          }}
+          className="w-full rounded-xl border border-slate-700 bg-slate-800 p-3 text-white outline-none focus-visible:border-cyan-500 focus-visible:ring-2 focus-visible:ring-cyan-500 disabled:opacity-60"
+        >
+          {filteredLanguages.length === 0 ? (
+            <option value={options.language} disabled>
+              No supported languages match
+            </option>
+          ) : (
+            filteredLanguages.map((entry) => (
+              <option key={entry.code} value={entry.code}>
+                {entry.label} ({entry.code})
+              </option>
+            ))
+          )}
         </select>
-
         <p className="mt-2 text-sm text-slate-400">
-          Select the main language used in
-          the scanned document.
+          Choose the primary language used in the scanned document. Selecting the closest language
+          generally improves recognition.
+        </p>
+        <p className="mt-2 text-sm text-amber-300">
+          Documents containing several languages may have lower recognition accuracy. Choose the
+          primary document language.
         </p>
       </div>
 
@@ -105,47 +84,29 @@ export default function OcrPdfOptions({
         <label className="flex cursor-pointer items-start gap-4">
           <input
             type="checkbox"
-            checked={
-              options.createWordDocument
-            }
-            onChange={(
-              event
-            ) =>
-              updateOptions({
-                createWordDocument:
-                  event.target.checked,
-              })
-            }
-            className="mt-1 h-5 w-5 rounded border-slate-600 bg-slate-900 text-cyan-500 focus:ring-cyan-500"
+            checked={options.createWordDocument}
+            disabled={locked}
+            onChange={(event) => updateOptions({ createWordDocument: event.target.checked })}
+            className="mt-1 h-5 w-5 rounded border-slate-600 bg-slate-900 text-cyan-500 focus:ring-cyan-500 disabled:opacity-60"
           />
-
           <div className="min-w-0">
             <div className="flex items-center gap-2 font-semibold text-white">
               <FileType2 className="h-5 w-5 text-cyan-400" />
-
               Also create an editable Word document
             </div>
-
             <p className="mt-2 text-sm leading-6 text-slate-400">
-              After OCR finishes, Draflio
-              will convert the searchable
-              PDF into a Microsoft Word
-              document containing editable
-              text.
+              After OCR finishes, Draflio will convert the searchable PDF into a Microsoft Word
+              document containing editable text.
             </p>
-
             <p className="mt-2 text-xs text-amber-300">
-              This requires an additional
-              conversion and may take
-              longer.
+              This requires an additional conversion and may take longer.
             </p>
           </div>
         </label>
       </div>
 
       <div className="rounded-xl border border-cyan-500/20 bg-cyan-950/30 p-4 text-sm text-cyan-200">
-        OCR adds a selectable and searchable
-        text layer to scanned PDF pages.
+        OCR adds a selectable and searchable text layer to scanned PDF pages.
       </div>
     </div>
   );

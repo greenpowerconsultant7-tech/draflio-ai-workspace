@@ -1,5 +1,6 @@
 export type ApiErrorCode =
   | "BAD_REQUEST"
+  | "INVALID_OCR_LANGUAGE"
   | "UNAUTHORIZED"
   | "FORBIDDEN"
   | "NOT_FOUND"

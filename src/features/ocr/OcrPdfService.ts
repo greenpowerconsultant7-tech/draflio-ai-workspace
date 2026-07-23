@@ -14,19 +14,17 @@ import {
 import {
   PDFDocument,
 } from "pdf-lib";
-
-export type OcrLanguage =
-  | "en-US"
-  | "en-GB"
-  | "fr-FR"
-  | "de-DE"
-  | "es-ES"
-  | "it-IT"
-  | "pt-BR"
-  | "nl-NL";
+import type {
+  OcrLanguageCode,
+  OcrLanguageInfo,
+} from "../../../shared/ocrLanguages";
+import {
+  createOcrLanguageFormData,
+  validatePublicOcrLanguage,
+} from "./ocrLanguageClient";
 
 export type OcrPdfOptions = {
-  language: OcrLanguage;
+  language: OcrLanguageCode;
 
   createWordDocument: boolean;
 };
@@ -81,6 +79,8 @@ export type OcrPdfResult = {
   wordBlob?: Blob;
 
   wordSize?: number;
+
+  ocrLanguage: OcrLanguageInfo;
 };
 
 type OcrServerJobStatus =
@@ -114,7 +114,7 @@ type OcrServerJob = {
 
   outputFilename: string;
 
-  language: string;
+  ocrLanguage: OcrLanguageInfo;
 
   createdAt: string;
 
@@ -263,6 +263,12 @@ function validateJobResponse(
     );
   }
 
+  response.job.ocrLanguage =
+    validatePublicOcrLanguage(
+      response.job
+        .ocrLanguage
+    );
+
   return response.job;
 }
 
@@ -350,17 +356,10 @@ async function createOcrJob(
   signal?: AbortSignal
 ): Promise<OcrServerJob> {
   const formData =
-    new FormData();
-
-  formData.append(
-    "file",
-    file
-  );
-
-  formData.append(
-    "language",
-    options.language
-  );
+    createOcrLanguageFormData(
+      file,
+      options.language
+    );
 
   const response =
     await fetchWithTimeout(
@@ -949,6 +948,9 @@ export async function runPdfOcr(
               wordBlob.size,
           }
         : {}),
+
+      ocrLanguage:
+        completedJob.ocrLanguage,
     };
   } catch (error) {
     if (

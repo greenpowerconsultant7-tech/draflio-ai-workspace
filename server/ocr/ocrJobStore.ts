@@ -8,6 +8,9 @@ import type {
   OcrJobRecord,
   UpdateOcrJobInput,
 } from "./ocrJobTypes";
+import {
+  toOcrLanguageInfo,
+} from "./ocrLanguageMapping";
 
 const OCR_JOB_TTL_MS =
   30 * 60 * 1000;
@@ -57,8 +60,8 @@ function toPublicData(
     outputFilename:
       job.outputFilename,
 
-    language:
-      job.language,
+    ocrLanguage:
+      job.ocrLanguage,
 
     createdAt:
       job.createdAt.toISOString(),
@@ -110,8 +113,10 @@ export function createOcrJob(
     outputFilename:
       input.outputFilename,
 
-    language:
-      input.language,
+    ocrLanguage:
+      toOcrLanguageInfo(
+        input.ocrLanguage
+      ),
 
     createdAt:
       now,

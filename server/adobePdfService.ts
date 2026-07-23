@@ -1,4 +1,7 @@
 import "./httpClient";
+import type {
+  OCRSupportedLocale,
+} from "@adobe/pdfservices-node-sdk";
 
 import {
   env,
@@ -20,7 +23,7 @@ const PPTX_MIME =
   "application/vnd.openxmlformats-officedocument.presentationml.presentation";
 
 export type OcrPdfOptions = {
-  language: string;
+  language: OCRSupportedLocale;
 };
 
 export type AdobeConversionStage =
@@ -1082,11 +1085,22 @@ export async function convertPdfWithOcr(
     inputBuffer,
     PDF_MIME,
     "/operation/ocr",
-    (assetID) => ({
-      assetID,
-      ocrLang:
-        options.language,
-    }),
+    (assetID) =>
+      createOcrRequestPayload(
+        assetID,
+        options
+      ),
     runOptions
   );
+}
+
+export function createOcrRequestPayload(
+  assetID: string,
+  options: OcrPdfOptions
+) {
+  return {
+    assetID,
+    ocrLang:
+      options.language,
+  };
 }

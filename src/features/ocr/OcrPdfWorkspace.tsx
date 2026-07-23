@@ -39,9 +39,13 @@ import {
   type OcrProgressStage,
   type OcrProgressUpdate,
 } from "./OcrPdfService";
+import {
+  DEFAULT_OCR_LANGUAGE_CODE,
+  getOcrLanguage,
+} from "../../../shared/ocrLanguages";
 
 const defaultOptions: OcrOptions = {
-  language: "en-US",
+  language: DEFAULT_OCR_LANGUAGE_CODE,
 
   createWordDocument: false,
 };
@@ -482,6 +486,10 @@ const downloadWordDocument =
       setError(
         ""
       );
+
+      setOptions(
+        defaultOptions
+      );
     };
 
   return (
@@ -521,6 +529,9 @@ const downloadWordDocument =
 
           clearResult();
         }}
+        locked={
+          loading
+        }
       />
 
       <div className="mt-8">
@@ -543,6 +554,17 @@ const downloadWordDocument =
         <div className="mt-6 rounded-2xl border border-red-500/30 bg-red-950/40 p-4 text-red-300">
           {error}
         </div>
+      )}
+
+      {file && (
+        <p className="mt-3 text-sm text-slate-400">
+          Selected OCR language:{" "}
+          {
+            getOcrLanguage(
+              options.language
+            ).label
+          }
+        </p>
       )}
 
       {file && (
@@ -749,12 +771,14 @@ const downloadWordDocument =
 
               <div className="rounded-2xl bg-slate-800/60 p-5">
                 <p className="text-sm text-slate-400">
-                  OCR Language
+                  Document language
                 </p>
 
                 <p className="mt-2 text-2xl font-bold text-white">
                   {
-                    options.language
+                    result
+                      .ocrLanguage
+                      .label
                   }
                 </p>
               </div>

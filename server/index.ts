@@ -70,11 +70,16 @@ import {
 } from "./errors/asyncHandler";
 
 import {
+  ApiError,
   badRequest,
   conflict,
   notFound,
   unprocessableContent,
 } from "./errors/apiError";
+import {
+  InvalidOcrLanguageError,
+  parseOcrLanguage,
+} from "./ocr/ocrLanguageMapping";
 
 import {
   validateDocxFile,
@@ -1543,24 +1548,42 @@ app.post(
           }
         );
 
-      const requestedLanguage =
-        typeof request.body
-          .language ===
-        "string"
-          ? request.body.language.trim()
-          : "";
+      const rawLanguage =
+        request.body
+          .ocrLanguage !==
+        undefined
+          ? request.body
+              .ocrLanguage
+          : request.body
+              .language;
 
-      const language =
-        requestedLanguage ||
-        "en-US";
+      let ocrLanguage;
 
-      if (
-        language.length >
-        35
-      ) {
-        throw badRequest(
-          "The OCR language value is invalid."
-        );
+      try {
+        ocrLanguage =
+          parseOcrLanguage(
+            rawLanguage
+          );
+      } catch (error) {
+        if (
+          !(
+            error instanceof
+            InvalidOcrLanguageError
+          )
+        ) {
+          throw error;
+        }
+
+        throw new ApiError({
+          statusCode:
+            400,
+
+          code:
+            "INVALID_OCR_LANGUAGE",
+
+          message:
+            "Select a supported OCR language.",
+        });
       }
 
       const originalName =
@@ -1579,7 +1602,7 @@ app.post(
 
           outputFilename,
 
-          language,
+          ocrLanguage,
 
           inputBuffer:
             file.buffer,

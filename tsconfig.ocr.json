@@ -1,0 +1,21 @@
+{
+  "extends": "./tsconfig.json",
+  "include": [
+    "shared/ocrLanguages.ts",
+    "server/adobePdfService.ts",
+    "server/errors/apiError.ts",
+    "server/ocr/ocrJobService.ts",
+    "server/ocr/ocrJobStore.ts",
+    "server/ocr/ocrJobTypes.ts",
+    "server/ocr/ocrLanguageMapping.ts",
+    "src/features/ocr/OcrPdfOptions.tsx",
+    "src/features/ocr/OcrPdfService.ts",
+    "src/features/ocr/OcrPdfWorkspace.tsx",
+    "src/features/ocr/ocrLanguageClient.ts",
+    "scripts/test-ocr-languages.ts"
+  ],
+  "compilerOptions": {
+    "skipLibCheck": false,
+    "types": ["node", "vite/client"]
+  }
+}

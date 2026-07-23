@@ -1,6 +1,9 @@
 import {
   convertPdfWithOcr,
 } from "../adobePdfService";
+import {
+  getSdkOcrLocale,
+} from "./ocrLanguageMapping";
 
 import {
   getOcrJob,
@@ -38,19 +41,6 @@ function ensureJobIsActive(
 
     throw error;
   }
-}
-
-function getErrorMessage(
-  error: unknown
-): string {
-  if (
-    error instanceof Error &&
-    error.message.trim()
-  ) {
-    return error.message;
-  }
-
-  return "The OCR job could not be completed.";
 }
 
 async function processOcrJob(
@@ -120,7 +110,9 @@ async function processOcrJob(
         job.inputBuffer,
         {
           language:
-            job.language,
+            getSdkOcrLocale(
+              job.ocrLanguage.code
+            ),
         }
       );
 
@@ -246,9 +238,7 @@ async function processOcrJob(
 
         error: {
           message:
-            getErrorMessage(
-              error
-            ),
+            "The OCR job could not be completed.",
 
           code:
             "OCR_PROCESSING_FAILED",
@@ -260,8 +250,7 @@ async function processOcrJob(
       Buffer.alloc(0);
 
     console.error(
-      `[Server] OCR job ${jobId} failed:`,
-      error
+      `[Server] OCR job ${jobId} failed with OCR_PROCESSING_FAILED.`
     );
   }
 }

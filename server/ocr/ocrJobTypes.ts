@@ -1,3 +1,8 @@
+import type {
+  OcrLanguageCode,
+  OcrLanguageInfo,
+} from "../../shared/ocrLanguages";
+
 export type OcrJobStatus =
   | "queued"
   | "running"
@@ -43,7 +48,7 @@ export type OcrJobPublicData = {
 
   outputFilename: string;
 
-  language: string;
+  ocrLanguage: OcrLanguageInfo;
 
   createdAt: string;
 
@@ -69,7 +74,7 @@ export type OcrJobRecord = {
 
   outputFilename: string;
 
-  language: string;
+  ocrLanguage: OcrLanguageInfo;
 
   createdAt: Date;
 
@@ -91,7 +96,7 @@ export type CreateOcrJobInput = {
 
   outputFilename: string;
 
-  language: string;
+  ocrLanguage: OcrLanguageCode;
 
   inputBuffer: Buffer;
 };
