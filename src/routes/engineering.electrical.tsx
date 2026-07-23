@@ -59,7 +59,7 @@ const laterPhases = [
   "DXF export",
 ];
 
-export function ElectricalEngineering() {
+function ElectricalEngineering() {
   return (
     <div className="min-h-screen overflow-x-hidden">
       <Header />
@@ -90,7 +90,7 @@ export function ElectricalEngineering() {
                 <Zap aria-hidden="true" className="h-6 w-6 text-white" />
               </div>
               <p className="mt-6 text-sm font-semibold uppercase tracking-widest text-primary-glow">
-                Primary planned product
+                MVP available
               </p>
               <h2 className="mt-3 text-2xl font-bold sm:text-3xl">
                 Smart SLD &amp; Substation PDF Inspector
@@ -110,14 +110,12 @@ export function ElectricalEngineering() {
                   </li>
                 ))}
               </ol>
-              <button
-                type="button"
-                disabled
-                aria-disabled="true"
-                className="mt-8 inline-flex cursor-not-allowed items-center rounded-xl border border-glass-border bg-secondary px-5 py-3 text-sm font-semibold text-muted-foreground opacity-80"
+              <Link
+                to="/engineering/electrical/inspector"
+                className="mt-8 inline-flex items-center rounded-xl gradient-brand px-5 py-3 text-sm font-semibold text-primary-foreground shadow-glow"
               >
-                Electrical Inspector — In development
-              </button>
+                Open Electrical Inspector
+              </Link>
             </article>
 
             <aside

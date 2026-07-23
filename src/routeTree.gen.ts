@@ -24,6 +24,7 @@ import { Route as ToolsIndexRouteImport } from './routes/tools.index'
 import { Route as EngineeringIndexRouteImport } from './routes/engineering.index'
 import { Route as ToolsToolIdRouteImport } from './routes/tools.$toolId'
 import { Route as EngineeringElectricalRouteImport } from './routes/engineering.electrical'
+import { Route as EngineeringElectricalInspectorRouteImport } from './routes/engineering.electrical_.inspector'
 
 const WorkspaceRoute = WorkspaceRouteImport.update({
   id: '/workspace',
@@ -100,6 +101,12 @@ const EngineeringElectricalRoute = EngineeringElectricalRouteImport.update({
   path: '/engineering/electrical',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EngineeringElectricalInspectorRoute =
+  EngineeringElectricalInspectorRouteImport.update({
+    id: '/engineering/electrical_/inspector',
+    path: '/engineering/electrical/inspector',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -117,6 +124,7 @@ export interface FileRoutesByFullPath {
   '/tools/$toolId': typeof ToolsToolIdRoute
   '/engineering/': typeof EngineeringIndexRoute
   '/tools/': typeof ToolsIndexRoute
+  '/engineering/electrical/inspector': typeof EngineeringElectricalInspectorRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -134,6 +142,7 @@ export interface FileRoutesByTo {
   '/tools/$toolId': typeof ToolsToolIdRoute
   '/engineering': typeof EngineeringIndexRoute
   '/tools': typeof ToolsIndexRoute
+  '/engineering/electrical/inspector': typeof EngineeringElectricalInspectorRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -152,6 +161,7 @@ export interface FileRoutesById {
   '/tools/$toolId': typeof ToolsToolIdRoute
   '/engineering/': typeof EngineeringIndexRoute
   '/tools/': typeof ToolsIndexRoute
+  '/engineering/electrical_/inspector': typeof EngineeringElectricalInspectorRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -171,6 +181,7 @@ export interface FileRouteTypes {
     | '/tools/$toolId'
     | '/engineering/'
     | '/tools/'
+    | '/engineering/electrical/inspector'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -188,6 +199,7 @@ export interface FileRouteTypes {
     | '/tools/$toolId'
     | '/engineering'
     | '/tools'
+    | '/engineering/electrical/inspector'
   id:
     | '__root__'
     | '/'
@@ -205,6 +217,7 @@ export interface FileRouteTypes {
     | '/tools/$toolId'
     | '/engineering/'
     | '/tools/'
+    | '/engineering/electrical_/inspector'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -223,6 +236,7 @@ export interface RootRouteChildren {
   ToolsToolIdRoute: typeof ToolsToolIdRoute
   EngineeringIndexRoute: typeof EngineeringIndexRoute
   ToolsIndexRoute: typeof ToolsIndexRoute
+  EngineeringElectricalInspectorRoute: typeof EngineeringElectricalInspectorRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -332,6 +346,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EngineeringElectricalRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/engineering/electrical_/inspector': {
+      id: '/engineering/electrical_/inspector'
+      path: '/engineering/electrical/inspector'
+      fullPath: '/engineering/electrical/inspector'
+      preLoaderRoute: typeof EngineeringElectricalInspectorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -351,6 +372,7 @@ const rootRouteChildren: RootRouteChildren = {
   ToolsToolIdRoute: ToolsToolIdRoute,
   EngineeringIndexRoute: EngineeringIndexRoute,
   ToolsIndexRoute: ToolsIndexRoute,
+  EngineeringElectricalInspectorRoute: EngineeringElectricalInspectorRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
