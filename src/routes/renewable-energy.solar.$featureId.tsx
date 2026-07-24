@@ -1,6 +1,7 @@
 import { createFileRoute, notFound } from "@tanstack/react-router";
 import { SolarFeatureDetail } from "@/features/renewable-energy/solar/SolarFeatureDetail";
 import { getSolarFeature } from "@/features/renewable-energy/solar/solarFeatureCatalog";
+import { SceneFoundationWorkspace } from "@/features/renewable-energy/scene/SceneFoundationWorkspace";
 
 const titles: Record<string, string> = {
   terrain: "Terrain Intelligence | Draflio",
@@ -33,5 +34,6 @@ export const Route = createFileRoute("/renewable-energy/solar/$featureId")({
 
 function FeatureRoute() {
   const { feature } = Route.useLoaderData();
+  if (feature.id === "pdf-to-3d") return <SceneFoundationWorkspace />;
   return <SolarFeatureDetail feature={feature} />;
 }
