@@ -21,9 +21,15 @@ import { Route as AppRouteImport } from './routes/app'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ToolsIndexRouteImport } from './routes/tools.index'
+import { Route as RenewableEnergyIndexRouteImport } from './routes/renewable-energy.index'
 import { Route as EngineeringIndexRouteImport } from './routes/engineering.index'
 import { Route as ToolsToolIdRouteImport } from './routes/tools.$toolId'
+import { Route as RenewableEnergyWindRouteImport } from './routes/renewable-energy.wind'
+import { Route as RenewableEnergyHybridRouteImport } from './routes/renewable-energy.hybrid'
+import { Route as RenewableEnergyBessRouteImport } from './routes/renewable-energy.bess'
 import { Route as EngineeringElectricalRouteImport } from './routes/engineering.electrical'
+import { Route as RenewableEnergySolarIndexRouteImport } from './routes/renewable-energy.solar.index'
+import { Route as RenewableEnergySolarFeatureIdRouteImport } from './routes/renewable-energy.solar.$featureId'
 import { Route as EngineeringElectricalInspectorRouteImport } from './routes/engineering.electrical_.inspector'
 
 const WorkspaceRoute = WorkspaceRouteImport.update({
@@ -86,6 +92,11 @@ const ToolsIndexRoute = ToolsIndexRouteImport.update({
   path: '/tools/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const RenewableEnergyIndexRoute = RenewableEnergyIndexRouteImport.update({
+  id: '/renewable-energy/',
+  path: '/renewable-energy/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const EngineeringIndexRoute = EngineeringIndexRouteImport.update({
   id: '/engineering/',
   path: '/engineering/',
@@ -96,11 +107,38 @@ const ToolsToolIdRoute = ToolsToolIdRouteImport.update({
   path: '/tools/$toolId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const RenewableEnergyWindRoute = RenewableEnergyWindRouteImport.update({
+  id: '/renewable-energy/wind',
+  path: '/renewable-energy/wind',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RenewableEnergyHybridRoute = RenewableEnergyHybridRouteImport.update({
+  id: '/renewable-energy/hybrid',
+  path: '/renewable-energy/hybrid',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RenewableEnergyBessRoute = RenewableEnergyBessRouteImport.update({
+  id: '/renewable-energy/bess',
+  path: '/renewable-energy/bess',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const EngineeringElectricalRoute = EngineeringElectricalRouteImport.update({
   id: '/engineering/electrical',
   path: '/engineering/electrical',
   getParentRoute: () => rootRouteImport,
 } as any)
+const RenewableEnergySolarIndexRoute =
+  RenewableEnergySolarIndexRouteImport.update({
+    id: '/renewable-energy/solar/',
+    path: '/renewable-energy/solar/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const RenewableEnergySolarFeatureIdRoute =
+  RenewableEnergySolarFeatureIdRouteImport.update({
+    id: '/renewable-energy/solar/$featureId',
+    path: '/renewable-energy/solar/$featureId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const EngineeringElectricalInspectorRoute =
   EngineeringElectricalInspectorRouteImport.update({
     id: '/engineering/electrical_/inspector',
@@ -121,10 +159,16 @@ export interface FileRoutesByFullPath {
   '/upload': typeof UploadRoute
   '/workspace': typeof WorkspaceRoute
   '/engineering/electrical': typeof EngineeringElectricalRoute
+  '/renewable-energy/bess': typeof RenewableEnergyBessRoute
+  '/renewable-energy/hybrid': typeof RenewableEnergyHybridRoute
+  '/renewable-energy/wind': typeof RenewableEnergyWindRoute
   '/tools/$toolId': typeof ToolsToolIdRoute
   '/engineering/': typeof EngineeringIndexRoute
+  '/renewable-energy/': typeof RenewableEnergyIndexRoute
   '/tools/': typeof ToolsIndexRoute
   '/engineering/electrical/inspector': typeof EngineeringElectricalInspectorRoute
+  '/renewable-energy/solar/$featureId': typeof RenewableEnergySolarFeatureIdRoute
+  '/renewable-energy/solar/': typeof RenewableEnergySolarIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -139,10 +183,16 @@ export interface FileRoutesByTo {
   '/upload': typeof UploadRoute
   '/workspace': typeof WorkspaceRoute
   '/engineering/electrical': typeof EngineeringElectricalRoute
+  '/renewable-energy/bess': typeof RenewableEnergyBessRoute
+  '/renewable-energy/hybrid': typeof RenewableEnergyHybridRoute
+  '/renewable-energy/wind': typeof RenewableEnergyWindRoute
   '/tools/$toolId': typeof ToolsToolIdRoute
   '/engineering': typeof EngineeringIndexRoute
+  '/renewable-energy': typeof RenewableEnergyIndexRoute
   '/tools': typeof ToolsIndexRoute
   '/engineering/electrical/inspector': typeof EngineeringElectricalInspectorRoute
+  '/renewable-energy/solar/$featureId': typeof RenewableEnergySolarFeatureIdRoute
+  '/renewable-energy/solar': typeof RenewableEnergySolarIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -158,10 +208,16 @@ export interface FileRoutesById {
   '/upload': typeof UploadRoute
   '/workspace': typeof WorkspaceRoute
   '/engineering/electrical': typeof EngineeringElectricalRoute
+  '/renewable-energy/bess': typeof RenewableEnergyBessRoute
+  '/renewable-energy/hybrid': typeof RenewableEnergyHybridRoute
+  '/renewable-energy/wind': typeof RenewableEnergyWindRoute
   '/tools/$toolId': typeof ToolsToolIdRoute
   '/engineering/': typeof EngineeringIndexRoute
+  '/renewable-energy/': typeof RenewableEnergyIndexRoute
   '/tools/': typeof ToolsIndexRoute
   '/engineering/electrical_/inspector': typeof EngineeringElectricalInspectorRoute
+  '/renewable-energy/solar/$featureId': typeof RenewableEnergySolarFeatureIdRoute
+  '/renewable-energy/solar/': typeof RenewableEnergySolarIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -178,10 +234,16 @@ export interface FileRouteTypes {
     | '/upload'
     | '/workspace'
     | '/engineering/electrical'
+    | '/renewable-energy/bess'
+    | '/renewable-energy/hybrid'
+    | '/renewable-energy/wind'
     | '/tools/$toolId'
     | '/engineering/'
+    | '/renewable-energy/'
     | '/tools/'
     | '/engineering/electrical/inspector'
+    | '/renewable-energy/solar/$featureId'
+    | '/renewable-energy/solar/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -196,10 +258,16 @@ export interface FileRouteTypes {
     | '/upload'
     | '/workspace'
     | '/engineering/electrical'
+    | '/renewable-energy/bess'
+    | '/renewable-energy/hybrid'
+    | '/renewable-energy/wind'
     | '/tools/$toolId'
     | '/engineering'
+    | '/renewable-energy'
     | '/tools'
     | '/engineering/electrical/inspector'
+    | '/renewable-energy/solar/$featureId'
+    | '/renewable-energy/solar'
   id:
     | '__root__'
     | '/'
@@ -214,10 +282,16 @@ export interface FileRouteTypes {
     | '/upload'
     | '/workspace'
     | '/engineering/electrical'
+    | '/renewable-energy/bess'
+    | '/renewable-energy/hybrid'
+    | '/renewable-energy/wind'
     | '/tools/$toolId'
     | '/engineering/'
+    | '/renewable-energy/'
     | '/tools/'
     | '/engineering/electrical_/inspector'
+    | '/renewable-energy/solar/$featureId'
+    | '/renewable-energy/solar/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -233,10 +307,16 @@ export interface RootRouteChildren {
   UploadRoute: typeof UploadRoute
   WorkspaceRoute: typeof WorkspaceRoute
   EngineeringElectricalRoute: typeof EngineeringElectricalRoute
+  RenewableEnergyBessRoute: typeof RenewableEnergyBessRoute
+  RenewableEnergyHybridRoute: typeof RenewableEnergyHybridRoute
+  RenewableEnergyWindRoute: typeof RenewableEnergyWindRoute
   ToolsToolIdRoute: typeof ToolsToolIdRoute
   EngineeringIndexRoute: typeof EngineeringIndexRoute
+  RenewableEnergyIndexRoute: typeof RenewableEnergyIndexRoute
   ToolsIndexRoute: typeof ToolsIndexRoute
   EngineeringElectricalInspectorRoute: typeof EngineeringElectricalInspectorRoute
+  RenewableEnergySolarFeatureIdRoute: typeof RenewableEnergySolarFeatureIdRoute
+  RenewableEnergySolarIndexRoute: typeof RenewableEnergySolarIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -325,6 +405,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ToolsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/renewable-energy/': {
+      id: '/renewable-energy/'
+      path: '/renewable-energy'
+      fullPath: '/renewable-energy/'
+      preLoaderRoute: typeof RenewableEnergyIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/engineering/': {
       id: '/engineering/'
       path: '/engineering'
@@ -339,11 +426,46 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ToolsToolIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/renewable-energy/wind': {
+      id: '/renewable-energy/wind'
+      path: '/renewable-energy/wind'
+      fullPath: '/renewable-energy/wind'
+      preLoaderRoute: typeof RenewableEnergyWindRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/renewable-energy/hybrid': {
+      id: '/renewable-energy/hybrid'
+      path: '/renewable-energy/hybrid'
+      fullPath: '/renewable-energy/hybrid'
+      preLoaderRoute: typeof RenewableEnergyHybridRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/renewable-energy/bess': {
+      id: '/renewable-energy/bess'
+      path: '/renewable-energy/bess'
+      fullPath: '/renewable-energy/bess'
+      preLoaderRoute: typeof RenewableEnergyBessRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/engineering/electrical': {
       id: '/engineering/electrical'
       path: '/engineering/electrical'
       fullPath: '/engineering/electrical'
       preLoaderRoute: typeof EngineeringElectricalRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/renewable-energy/solar/': {
+      id: '/renewable-energy/solar/'
+      path: '/renewable-energy/solar'
+      fullPath: '/renewable-energy/solar/'
+      preLoaderRoute: typeof RenewableEnergySolarIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/renewable-energy/solar/$featureId': {
+      id: '/renewable-energy/solar/$featureId'
+      path: '/renewable-energy/solar/$featureId'
+      fullPath: '/renewable-energy/solar/$featureId'
+      preLoaderRoute: typeof RenewableEnergySolarFeatureIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/engineering/electrical_/inspector': {
@@ -369,10 +491,16 @@ const rootRouteChildren: RootRouteChildren = {
   UploadRoute: UploadRoute,
   WorkspaceRoute: WorkspaceRoute,
   EngineeringElectricalRoute: EngineeringElectricalRoute,
+  RenewableEnergyBessRoute: RenewableEnergyBessRoute,
+  RenewableEnergyHybridRoute: RenewableEnergyHybridRoute,
+  RenewableEnergyWindRoute: RenewableEnergyWindRoute,
   ToolsToolIdRoute: ToolsToolIdRoute,
   EngineeringIndexRoute: EngineeringIndexRoute,
+  RenewableEnergyIndexRoute: RenewableEnergyIndexRoute,
   ToolsIndexRoute: ToolsIndexRoute,
   EngineeringElectricalInspectorRoute: EngineeringElectricalInspectorRoute,
+  RenewableEnergySolarFeatureIdRoute: RenewableEnergySolarFeatureIdRoute,
+  RenewableEnergySolarIndexRoute: RenewableEnergySolarIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -1,10 +1,12 @@
 import { Link } from "@tanstack/react-router";
 import { Logo } from "./Logo";
 import { ArrowRight, Menu, Sparkles } from "lucide-react";
+import { useRef } from "react";
 
 const primaryNavigation = [
   { label: "Tools", to: "/tools" },
   { label: "Engineering", to: "/engineering" },
+  { label: "Renewable Energy", to: "/renewable-energy" },
   { label: "AI Workspace", to: "/workspace" },
   { label: "Pricing", to: "/pricing" },
   { label: "About", to: "/about" },
@@ -15,6 +17,8 @@ const navigationLinkClass =
   "text-sm text-muted-foreground transition hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background";
 
 export function Header() {
+  const mobileMenuRef = useRef<HTMLDetailsElement>(null);
+
   return (
     <header className="sticky top-0 z-40 w-full">
       <div className="glass border-b border-glass-border">
@@ -40,7 +44,7 @@ export function Header() {
             ))}
           </nav>
           <div className="flex items-center gap-2">
-            <details className="group relative md:hidden">
+            <details ref={mobileMenuRef} className="group relative md:hidden">
               <summary
                 aria-label="Open primary navigation"
                 className="flex h-10 w-10 cursor-pointer list-none items-center justify-center rounded-lg border border-glass-border bg-card/60 text-foreground transition hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden"
@@ -55,6 +59,9 @@ export function Header() {
                   <Link
                     key={item.to}
                     to={item.to}
+                    onClick={() => {
+                      mobileMenuRef.current?.removeAttribute("open");
+                    }}
                     className="rounded-lg px-3 py-2 text-sm text-muted-foreground transition hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     activeProps={{
                       "aria-current": "page",
