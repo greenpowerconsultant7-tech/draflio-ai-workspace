@@ -1,0 +1,21 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "strict": true,
+    "types": ["node", "vite/client"],
+    "skipLibCheck": false,
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "baseUrl": ".",
+    "paths": { "@/*": ["./src/*"] }
+  },
+  "include": [
+    "src/features/renewable-energy/drawing/**/*.ts",
+    "src/features/renewable-energy/drawing/**/*.tsx",
+    "shared/renewableEnergy/drawing/**/*.ts",
+    "shared/renewableEnergy/draflioScene*.ts",
+    "shared/renewableEnergy/terrain/webgpuTypes.d.ts",
+    "scripts/test-drawing-scene.ts",
+    "scripts/test-drawing-advanced.ts"
+  ]
+}
