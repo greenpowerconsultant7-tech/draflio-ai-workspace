@@ -6,15 +6,21 @@
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "types": ["node"],
     "strict": true,
+    "jsx": "react-jsx",
     "skipLibCheck": false,
     "noEmit": true,
     "verbatimModuleSyntax": true,
     "forceConsistentCasingInFileNames": true,
-    "noFallthroughCasesInSwitch": true
+    "noFallthroughCasesInSwitch": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"]
+    }
   },
   "include": [
     "shared/renewableEnergy/**/*.ts",
     "src/features/renewable-energy/terrain/**/*.ts",
+    "src/features/renewable-energy/terrain/**/*.tsx",
     "scripts/test-terrain-core.ts"
   ]
 }

@@ -14,6 +14,7 @@ import {
 } from "../../../../shared/renewableEnergy/terrain/terrainTypes";
 import { Breadcrumbs, RenewablePage, StatusBadge } from "../RenewableShell";
 import { safeTerrainFilename, validateTerrainFile } from "./terrainFileClient";
+import { Terrain3DReview } from "./Terrain3DReview";
 
 const buttonClass =
   "rounded-xl border border-glass-border bg-card px-4 py-2 text-sm font-semibold transition hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50";
@@ -521,6 +522,7 @@ export function TerrainWorkspace() {
                 process(restored);
               }}
               onReprocess={() => process()}
+              coordinateType={coordinateType}
             />
           )}
         </div>
@@ -560,6 +562,7 @@ function TerrainReview(props: {
   onToggleExcluded: (sourceIndex: number) => void;
   onRestoreAll: () => void;
   onReprocess: () => void;
+  coordinateType: "local" | "projected" | "geographic";
 }) {
   const { analysis, parsed } = props;
   const grid = analysis.grid;
@@ -606,6 +609,7 @@ function TerrainReview(props: {
           buildability: analysis.buildability[props.selectedCell],
         };
   const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [reviewView, setReviewView] = useState<"2d" | "3d">("2d");
   const drag = useRef<{
     pointerId: number;
     x: number;
@@ -634,189 +638,222 @@ function TerrainReview(props: {
     .slice(0, 100);
   return (
     <>
-      <section className="rounded-2xl border border-glass-border bg-card/50 p-5">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <h2 className="text-2xl font-semibold">4. Professional 2D terrain review</h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Plan-view engineering preview; select a cell for accessible numeric details.
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <button
-              className={buttonClass}
-              aria-label="Zoom out"
-              onClick={() => props.setZoom(Math.max(0.5, props.zoom / 1.25))}
-            >
-              −
-            </button>
-            <button
-              className={buttonClass}
-              aria-label="Fit terrain to extent"
-              onClick={() => {
-                props.setZoom(1);
-                setPan({ x: 0, y: 0 });
-              }}
-            >
-              Fit
-            </button>
-            <button
-              className={buttonClass}
-              aria-label="Zoom in"
-              onClick={() => props.setZoom(Math.min(4, props.zoom * 1.25))}
-            >
-              +
-            </button>
-          </div>
-        </div>
-        <div className="mt-5 grid gap-5 lg:grid-cols-[240px_minmax(0,1fr)]">
-          <aside className="space-y-4">
-            <Select
-              label="Review layer"
-              value={props.layer}
-              set={(value) => props.setLayer(value as typeof props.layer)}
-              options={[
-                ["elevation", "Elevation (m)"],
-                ["slope", "Slope (degrees)"],
-                ["aspect", "Aspect (clockwise from north)"],
-                ["buildability", "Slope screening"],
-              ]}
-            />
-            <label className="flex gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={props.showPoints}
-                onChange={(event) => props.setShowPoints(event.target.checked)}
-              />{" "}
-              Show source points
-            </label>
-            <label className="flex gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={props.showContours}
-                onChange={(event) => props.setShowContours(event.target.checked)}
-              />{" "}
-              Show contours
-            </label>
-            <div className="rounded-xl bg-background/60 p-4 text-sm">
-              <p className="font-semibold">Legend</p>
-              <p className="mt-2 text-muted-foreground">
-                {props.layer === "elevation"
-                  ? `${minZ.toFixed(2)}–${maxZ.toFixed(2)} m`
-                  : props.layer === "slope"
-                    ? "0–30+ degrees"
-                    : props.layer === "aspect"
-                      ? "0° north, 90° east"
-                      : "Green preferred · Amber review · Red excluded"}
+      <div className="flex flex-wrap gap-2" role="group" aria-label="Terrain review view">
+        <button
+          className={buttonClass}
+          aria-pressed={reviewView === "2d"}
+          onClick={() => setReviewView("2d")}
+        >
+          2D Review
+        </button>
+        <button
+          className={buttonClass}
+          aria-pressed={reviewView === "3d"}
+          onClick={() => setReviewView("3d")}
+        >
+          3D Review
+        </button>
+      </div>
+      {reviewView === "2d" ? (
+        <section className="rounded-2xl border border-glass-border bg-card/50 p-5">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <h2 className="text-2xl font-semibold">4. Professional 2D terrain review</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Plan-view engineering preview; select a cell for accessible numeric details.
               </p>
             </div>
-            {selected && (
-              <dl className="rounded-xl bg-background/60 p-4 text-sm">
-                <dt className="font-semibold">Selected cell</dt>
-                <dd className="mt-2">Elevation: {selected.elevation?.toFixed(3) ?? "No data"} m</dd>
-                <dd>Slope: {selected.slope?.toFixed(2) ?? "No data"}°</dd>
-                <dd>Aspect: {selected.aspect?.toFixed(1) ?? "Flat/no data"}°</dd>
-                <dd>Screening: {selected.buildability}</dd>
-              </dl>
-            )}
-          </aside>
-          <div className="overflow-hidden rounded-xl border border-glass-border bg-background/60">
-            <svg
-              role="img"
-              aria-label={`${props.layer} terrain plan view`}
-              viewBox={`0 0 ${width} ${height}`}
-              className="min-h-[360px] w-full"
-              onPointerDown={(event) => {
-                drag.current = {
-                  pointerId: event.pointerId,
-                  x: event.clientX,
-                  y: event.clientY,
-                  originX: pan.x,
-                  originY: pan.y,
-                };
-                event.currentTarget.setPointerCapture(event.pointerId);
-              }}
-              onPointerMove={(event) => {
-                const active = drag.current;
-                if (!active || active.pointerId !== event.pointerId) return;
-                setPan({
-                  x: active.originX + event.clientX - active.x,
-                  y: active.originY + event.clientY - active.y,
-                });
-              }}
-              onPointerUp={(event) => {
-                if (drag.current?.pointerId === event.pointerId) drag.current = null;
-                event.currentTarget.releasePointerCapture(event.pointerId);
-              }}
-              onPointerCancel={() => {
-                drag.current = null;
-              }}
-              style={{ touchAction: "none", cursor: drag.current ? "grabbing" : "grab" }}
-            >
-              <g transform={`translate(${pan.x} ${pan.y}) scale(${props.zoom})`}>
-                {grid.elevations.map((_, index) =>
-                  index % step === 0 ? (
-                    <rect
-                      key={index}
-                      x={(index % grid.columns) * cellW}
-                      y={height - (Math.floor(index / grid.columns) + 1) * cellH}
-                      width={Math.max(cellW * step, 0.5)}
-                      height={Math.max(cellH, 0.5)}
-                      fill={color(index)}
-                      onClick={() => props.setSelectedCell(index)}
-                      tabIndex={index === 0 ? 0 : undefined}
-                    />
-                  ) : null,
-                )}
-                {props.showContours &&
-                  analysis.contours.flatMap((contour) =>
-                    contour.segments
-                      .slice(0, 2000)
-                      .map((segment, index) => (
-                        <line
-                          key={`${contour.elevation}-${index}`}
-                          x1={
-                            ((segment[0][0] - grid.originX) / (grid.columns * grid.spacing)) * width
-                          }
-                          y1={
-                            height -
-                            ((segment[0][1] - grid.originY) / (grid.rows * grid.spacing)) * height
-                          }
-                          x2={
-                            ((segment[1][0] - grid.originX) / (grid.columns * grid.spacing)) * width
-                          }
-                          y2={
-                            height -
-                            ((segment[1][1] - grid.originY) / (grid.rows * grid.spacing)) * height
-                          }
-                          stroke="white"
-                          strokeOpacity=".65"
-                          strokeWidth="1"
-                        />
-                      )),
-                  )}
-                {props.showPoints &&
-                  parsed.points
-                    .filter(
-                      (_, index) =>
-                        index % Math.max(1, Math.ceil(parsed.points.length / 5000)) === 0,
-                    )
-                    .map((point) => (
-                      <circle
-                        key={point.sourceIndex}
-                        cx={((point.x - grid.originX) / (grid.columns * grid.spacing)) * width}
-                        cy={
-                          height - ((point.y - grid.originY) / (grid.rows * grid.spacing)) * height
-                        }
-                        r="1.5"
-                        fill="white"
-                      />
-                    ))}
-              </g>
-            </svg>
+            <div className="flex flex-wrap gap-2">
+              <button
+                className={buttonClass}
+                aria-label="Zoom out"
+                onClick={() => props.setZoom(Math.max(0.5, props.zoom / 1.25))}
+              >
+                −
+              </button>
+              <button
+                className={buttonClass}
+                aria-label="Fit terrain to extent"
+                onClick={() => {
+                  props.setZoom(1);
+                  setPan({ x: 0, y: 0 });
+                }}
+              >
+                Fit
+              </button>
+              <button
+                className={buttonClass}
+                aria-label="Zoom in"
+                onClick={() => props.setZoom(Math.min(4, props.zoom * 1.25))}
+              >
+                +
+              </button>
+            </div>
           </div>
-        </div>
-      </section>
+          <div className="mt-5 grid gap-5 lg:grid-cols-[240px_minmax(0,1fr)]">
+            <aside className="space-y-4">
+              <Select
+                label="Review layer"
+                value={props.layer}
+                set={(value) => props.setLayer(value as typeof props.layer)}
+                options={[
+                  ["elevation", "Elevation (m)"],
+                  ["slope", "Slope (degrees)"],
+                  ["aspect", "Aspect (clockwise from north)"],
+                  ["buildability", "Slope screening"],
+                ]}
+              />
+              <label className="flex gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={props.showPoints}
+                  onChange={(event) => props.setShowPoints(event.target.checked)}
+                />{" "}
+                Show source points
+              </label>
+              <label className="flex gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={props.showContours}
+                  onChange={(event) => props.setShowContours(event.target.checked)}
+                />{" "}
+                Show contours
+              </label>
+              <div className="rounded-xl bg-background/60 p-4 text-sm">
+                <p className="font-semibold">Legend</p>
+                <p className="mt-2 text-muted-foreground">
+                  {props.layer === "elevation"
+                    ? `${minZ.toFixed(2)}–${maxZ.toFixed(2)} m`
+                    : props.layer === "slope"
+                      ? "0–30+ degrees"
+                      : props.layer === "aspect"
+                        ? "0° north, 90° east"
+                        : "Green preferred · Amber review · Red excluded"}
+                </p>
+              </div>
+              {selected && (
+                <dl className="rounded-xl bg-background/60 p-4 text-sm">
+                  <dt className="font-semibold">Selected cell</dt>
+                  <dd className="mt-2">
+                    Elevation: {selected.elevation?.toFixed(3) ?? "No data"} m
+                  </dd>
+                  <dd>Slope: {selected.slope?.toFixed(2) ?? "No data"}°</dd>
+                  <dd>Aspect: {selected.aspect?.toFixed(1) ?? "Flat/no data"}°</dd>
+                  <dd>Screening: {selected.buildability}</dd>
+                </dl>
+              )}
+            </aside>
+            <div className="overflow-hidden rounded-xl border border-glass-border bg-background/60">
+              <svg
+                role="img"
+                aria-label={`${props.layer} terrain plan view`}
+                viewBox={`0 0 ${width} ${height}`}
+                className="min-h-[360px] w-full"
+                onPointerDown={(event) => {
+                  drag.current = {
+                    pointerId: event.pointerId,
+                    x: event.clientX,
+                    y: event.clientY,
+                    originX: pan.x,
+                    originY: pan.y,
+                  };
+                  event.currentTarget.setPointerCapture(event.pointerId);
+                }}
+                onPointerMove={(event) => {
+                  const active = drag.current;
+                  if (!active || active.pointerId !== event.pointerId) return;
+                  setPan({
+                    x: active.originX + event.clientX - active.x,
+                    y: active.originY + event.clientY - active.y,
+                  });
+                }}
+                onPointerUp={(event) => {
+                  if (drag.current?.pointerId === event.pointerId) drag.current = null;
+                  event.currentTarget.releasePointerCapture(event.pointerId);
+                }}
+                onPointerCancel={() => {
+                  drag.current = null;
+                }}
+                style={{ touchAction: "none", cursor: drag.current ? "grabbing" : "grab" }}
+              >
+                <g transform={`translate(${pan.x} ${pan.y}) scale(${props.zoom})`}>
+                  {grid.elevations.map((_, index) =>
+                    index % step === 0 ? (
+                      <rect
+                        key={index}
+                        x={(index % grid.columns) * cellW}
+                        y={height - (Math.floor(index / grid.columns) + 1) * cellH}
+                        width={Math.max(cellW * step, 0.5)}
+                        height={Math.max(cellH, 0.5)}
+                        fill={color(index)}
+                        onClick={() => props.setSelectedCell(index)}
+                        tabIndex={index === 0 ? 0 : undefined}
+                      />
+                    ) : null,
+                  )}
+                  {props.showContours &&
+                    analysis.contours.flatMap((contour) =>
+                      contour.segments
+                        .slice(0, 2000)
+                        .map((segment, index) => (
+                          <line
+                            key={`${contour.elevation}-${index}`}
+                            x1={
+                              ((segment[0][0] - grid.originX) / (grid.columns * grid.spacing)) *
+                              width
+                            }
+                            y1={
+                              height -
+                              ((segment[0][1] - grid.originY) / (grid.rows * grid.spacing)) * height
+                            }
+                            x2={
+                              ((segment[1][0] - grid.originX) / (grid.columns * grid.spacing)) *
+                              width
+                            }
+                            y2={
+                              height -
+                              ((segment[1][1] - grid.originY) / (grid.rows * grid.spacing)) * height
+                            }
+                            stroke="white"
+                            strokeOpacity=".65"
+                            strokeWidth="1"
+                          />
+                        )),
+                    )}
+                  {props.showPoints &&
+                    parsed.points
+                      .filter(
+                        (_, index) =>
+                          index % Math.max(1, Math.ceil(parsed.points.length / 5000)) === 0,
+                      )
+                      .map((point) => (
+                        <circle
+                          key={point.sourceIndex}
+                          cx={((point.x - grid.originX) / (grid.columns * grid.spacing)) * width}
+                          cy={
+                            height -
+                            ((point.y - grid.originY) / (grid.rows * grid.spacing)) * height
+                          }
+                          r="1.5"
+                          fill="white"
+                        />
+                      ))}
+                </g>
+              </svg>
+            </div>
+          </div>
+        </section>
+      ) : props.coordinateType === "geographic" ? (
+        <p role="alert" className="rounded-xl border border-warning/30 bg-warning/10 p-4 text-sm">
+          Three-dimensional metric review requires local or projected coordinates.
+        </p>
+      ) : (
+        <Terrain3DReview
+          analysis={analysis}
+          parsed={parsed}
+          coordinateType={props.coordinateType}
+        />
+      )}
       <TerrainStats analysis={analysis} parsed={parsed} />
       <section className="rounded-2xl border border-glass-border bg-card/50 p-5">
         <h2 className="text-xl font-semibold">Screened-point review</h2>
