@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "types": ["node", "vite/client"],
+    "strict": true,
+    "jsx": "react-jsx",
+    "skipLibCheck": false,
+    "noEmit": true,
+    "verbatimModuleSyntax": true,
+    "forceConsistentCasingInFileNames": true,
+    "baseUrl": ".",
+    "paths": { "@/*": ["src/*"] }
+  },
+  "include": [
+    "shared/renewableEnergy/components/**/*.ts",
+    "src/features/renewable-energy/components/**/*.tsx",
+    "scripts/test-component-intelligence.ts"
+  ]
+}
