@@ -4,12 +4,13 @@ import { getSolarFeature } from "@/features/renewable-energy/solar/solarFeatureC
 import { TerrainWorkspace } from "@/features/renewable-energy/terrain/TerrainWorkspace";
 import { DrawingSceneWorkspace } from "@/features/renewable-energy/drawing/DrawingSceneWorkspace";
 import { ComponentWorkspace } from "@/features/renewable-energy/components/ComponentWorkspace";
+import { LayoutWorkspace } from "@/features/renewable-energy/layout/LayoutWorkspace";
 
 const titles: Record<string, string> = {
   terrain: "Terrain Intelligence | Draflio",
   "pdf-to-3d": "Drawing-to-Scene | Draflio",
   components: "PV Module and Inverter Component Intelligence | Draflio",
-  layout: "Solar Layout | Draflio",
+  layout: "Terrain-Aware Solar Layout | Draflio",
   shading: "Solar Shading Analysis | Draflio",
   simulation: "Solar Simulation | Draflio",
   "pvsyst-inspector": "PVsyst Report Inspector | Draflio",
@@ -39,5 +40,6 @@ function FeatureRoute() {
   if (feature.id === "pdf-to-3d") return <DrawingSceneWorkspace />;
   if (feature.id === "terrain") return <TerrainWorkspace />;
   if (feature.id === "components") return <ComponentWorkspace />;
+  if (feature.id === "layout") return <LayoutWorkspace />;
   return <SolarFeatureDetail feature={feature} />;
 }
