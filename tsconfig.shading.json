@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "lib": ["ES2022", "DOM", "DOM.Iterable", "WebWorker"],
+    "types": ["node", "vite/client"],
+    "strict": true,
+    "jsx": "react-jsx",
+    "skipLibCheck": true,
+    "noEmit": true,
+    "baseUrl": ".",
+    "paths": { "@/*": ["src/*"] }
+  },
+  "include": [
+    "shared/renewableEnergy/shading/**/*.ts",
+    "src/features/renewable-energy/shading/**/*",
+    "scripts/test-shading-*.ts",
+    "shared/renewableEnergy/layout/**/*.ts",
+    "shared/renewableEnergy/terrain/**/*.ts"
+  ]
+}

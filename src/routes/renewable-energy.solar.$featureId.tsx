@@ -5,6 +5,7 @@ import { TerrainWorkspace } from "@/features/renewable-energy/terrain/TerrainWor
 import { DrawingSceneWorkspace } from "@/features/renewable-energy/drawing/DrawingSceneWorkspace";
 import { ComponentWorkspace } from "@/features/renewable-energy/components/ComponentWorkspace";
 import { LayoutWorkspace } from "@/features/renewable-energy/layout/LayoutWorkspace";
+import { ShadingWorkspace } from "@/features/renewable-energy/shading/ShadingWorkspace";
 
 const titles: Record<string, string> = {
   terrain: "Terrain Intelligence | Draflio",
@@ -41,5 +42,6 @@ function FeatureRoute() {
   if (feature.id === "terrain") return <TerrainWorkspace />;
   if (feature.id === "components") return <ComponentWorkspace />;
   if (feature.id === "layout") return <LayoutWorkspace />;
+  if (feature.id === "shading") return <ShadingWorkspace />;
   return <SolarFeatureDetail feature={feature} />;
 }
