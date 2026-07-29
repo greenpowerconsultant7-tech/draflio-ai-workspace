@@ -7,6 +7,7 @@ export type SolarFeatureId =
   | "layout"
   | "shading"
   | "weather"
+  | "irradiance"
   | "simulation"
   | "pvsyst-inspector"
   | "revision-comparison";

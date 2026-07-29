@@ -1,0 +1,15 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": { "noEmit": true, "types": ["node", "vite/client"] },
+  "include": [
+    "shared/renewableEnergy/irradiance/**/*.ts",
+    "shared/renewableEnergy/weather/**/*.ts",
+    "shared/renewableEnergy/shading/shadingCore.ts",
+    "shared/renewableEnergy/shading/shadingTypes.ts",
+    "src/features/renewable-energy/irradiance/**/*.ts",
+    "src/features/renewable-energy/irradiance/**/*.tsx",
+    "src/features/renewable-energy/renewableEnergyTypes.ts",
+    "src/features/renewable-energy/solar/solarFeatureCatalog.ts",
+    "scripts/test-irradiance-*.ts"
+  ]
+}

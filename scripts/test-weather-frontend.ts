@@ -8,7 +8,7 @@ assert(WEATHER_TRANSITIONS.Reviewed.includes("Approved for preliminary modelling
 assert(!WEATHER_TRANSITIONS.Imported.includes("Approved for preliminary modelling"));
 assert.equal(
   WEATHER_MODEL_REGISTRY.filter((model) => model.validationStatus === "available").length,
-  1,
+  3,
 );
 assert.equal(safeWeatherFilename("../../bad name.csv", "review.json"), "bad-name.csv-review.json");
 console.log("weather frontend: 4 checks passed");

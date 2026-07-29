@@ -147,6 +147,28 @@ export const SOLAR_FEATURES = [
   },
   {
     ...common,
+    id: "irradiance",
+    title: "Irradiance Decomposition",
+    shortTitle: "Irradiance",
+    description:
+      "Preserve reviewed measured irradiance and estimate only supported missing components with an explicitly selected, benchmarked model.",
+    status: "foundation",
+    route: "/renewable-energy/solar/irradiance",
+    category: "Resources",
+    inputs: ["Approved RE8A weather review", "Measured GHI/DNI/DHI availability"],
+    outputs: [
+      "Governed irradiance-component study",
+      "Measured and estimated component CSV",
+      "Decomposition findings",
+    ],
+    limitations:
+      "No plane-of-array irradiance, transposition, electrical output, generation, energy yield, CUF, performance ratio, probability, or bankability result is calculated.",
+    architecturalRole:
+      "Connects reviewed weather resources to a future preliminary irradiance-transposition phase.",
+    order: 7,
+  },
+  {
+    ...common,
     id: "simulation",
     title: "Solar Simulation",
     shortTitle: "Simulation",
@@ -160,7 +182,7 @@ export const SOLAR_FEATURES = [
     limitations: "No energy-yield calculation is performed in this phase.",
     architecturalRole:
       "Defines provenance and review requirements for a future validated calculation engine.",
-    order: 7,
+    order: 8,
   },
   {
     ...common,
@@ -176,7 +198,7 @@ export const SOLAR_FEATURES = [
     outputs: ["Assumption comparison", "Source references", "Review findings"],
     limitations: "PVsyst report extraction is not implemented in this phase.",
     architecturalRole: "Will connect third-party report evidence to reviewable project records.",
-    order: 8,
+    order: 9,
   },
   {
     ...common,

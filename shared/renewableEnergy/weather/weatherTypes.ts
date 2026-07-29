@@ -201,6 +201,7 @@ export type WeatherModelRegistryEntry = {
   category:
     | "solar position"
     | "irradiance decomposition"
+    | "irradiance decomposition"
     | "irradiance transposition"
     | "incidence-angle modifier"
     | "albedo"
@@ -246,6 +247,40 @@ export const WEATHER_MODEL_REGISTRY: readonly WeatherModelRegistryEntry[] = [
     configurationSchema: "none",
     validationStatus: "available",
     knownLimitations: ["Used only for quality checks in RE8A."],
+  },
+  {
+    modelId: "draflio-measured-irradiance-pass-through",
+    name: "Measured irradiance component pass-through",
+    version: "re8b-1.0",
+    category: "irradiance decomposition",
+    inputRequirements: ["approved weather review", "measured GHI", "measured DNI", "measured DHI"],
+    outputDefinitions: [
+      "unchanged measured GHI",
+      "unchanged measured DNI",
+      "unchanged measured DHI",
+    ],
+    documentedSource: "Draflio RE8B measured-component precedence rule",
+    validityRange: "Finite non-negative measured components at supported intervals",
+    configurationSchema: "none",
+    validationStatus: "available",
+    knownLimitations: ["Does not estimate missing components."],
+  },
+  {
+    modelId: "draflio-erbs-hourly",
+    name: "Erbs hourly diffuse-fraction decomposition",
+    version: "1982-re8b-1.0",
+    category: "irradiance decomposition",
+    inputRequirements: [
+      "approved hourly GHI",
+      "valid location and timezone",
+      "RE7A solar position",
+    ],
+    outputDefinitions: ["estimated DHI where missing", "estimated DNI where missing"],
+    documentedSource: "Erbs, Klein and Duffie (1982) hourly diffuse-fraction correlation",
+    validityRange: "Hourly input, solar elevation >=5°, clearness index 0–1",
+    configurationSchema: "versioned low-sun and reconciliation tolerances",
+    validationStatus: "available",
+    knownLimitations: ["Empirical correlation; no POA, transposition, or electrical result."],
   },
   ...(
     [
