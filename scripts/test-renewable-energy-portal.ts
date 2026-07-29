@@ -18,9 +18,10 @@ assert.ok(
     (sector) => sector.status === "Planned",
   ),
 );
-assert.equal(SOLAR_FEATURES.length, 8);
-assert.equal(new Set(SOLAR_FEATURES.map((feature) => feature.id)).size, 8);
-assert.equal(new Set(SOLAR_FEATURES.map((feature) => feature.route)).size, 8);
+assert.equal(SOLAR_FEATURES.length, 9);
+assert.equal(new Set(SOLAR_FEATURES.map((feature) => feature.id)).size, 9);
+assert.equal(new Set(SOLAR_FEATURES.map((feature) => feature.route)).size, 9);
+assert.ok(SOLAR_FEATURES.some((feature) => feature.id === "weather"));
 for (const feature of SOLAR_FEATURES) {
   assert.equal(feature.route, `/renewable-energy/solar/${feature.id}`);
   assert.ok(isSolarFeatureId(feature.id));

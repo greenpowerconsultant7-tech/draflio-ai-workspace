@@ -6,6 +6,7 @@ import { DrawingSceneWorkspace } from "@/features/renewable-energy/drawing/Drawi
 import { ComponentWorkspace } from "@/features/renewable-energy/components/ComponentWorkspace";
 import { LayoutWorkspace } from "@/features/renewable-energy/layout/LayoutWorkspace";
 import { ShadingWorkspace } from "@/features/renewable-energy/shading/ShadingWorkspace";
+import { WeatherWorkspace } from "@/features/renewable-energy/weather/WeatherWorkspace";
 
 const titles: Record<string, string> = {
   terrain: "Terrain Intelligence | Draflio",
@@ -13,6 +14,7 @@ const titles: Record<string, string> = {
   components: "PV Module and Inverter Component Intelligence | Draflio",
   layout: "Terrain-Aware Solar Layout | Draflio",
   shading: "Solar Shading Analysis | Draflio",
+  weather: "Solar Weather Resources | Draflio",
   simulation: "Solar Simulation | Draflio",
   "pvsyst-inspector": "PVsyst Report Inspector | Draflio",
   "revision-comparison": "Solar Revision Comparison | Draflio",
@@ -43,5 +45,6 @@ function FeatureRoute() {
   if (feature.id === "components") return <ComponentWorkspace />;
   if (feature.id === "layout") return <LayoutWorkspace />;
   if (feature.id === "shading") return <ShadingWorkspace />;
+  if (feature.id === "weather") return <WeatherWorkspace />;
   return <SolarFeatureDetail feature={feature} />;
 }

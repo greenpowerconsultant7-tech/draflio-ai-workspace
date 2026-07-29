@@ -130,6 +130,23 @@ export const SOLAR_FEATURES = [
   },
   {
     ...common,
+    id: "weather",
+    title: "Weather Resources",
+    shortTitle: "Weather",
+    description:
+      "Import, canonicalise, validate, review, and govern time-series weather resources in the browser.",
+    status: "foundation",
+    route: "/renewable-energy/solar/weather",
+    category: "Resources",
+    inputs: ["EPW", "Draflio canonical weather CSV", "Mapped CSV", "TMY-style CSV"],
+    outputs: ["Reviewed weather package", "Canonical weather CSV", "Quality findings"],
+    limitations:
+      "This foundation does not calculate irradiance transposition, plant generation, energy yield, CUF, performance ratio, or probability results.",
+    architecturalRole: "Establishes reviewed weather inputs for later validated modelling.",
+    order: 6,
+  },
+  {
+    ...common,
     id: "simulation",
     title: "Solar Simulation",
     shortTitle: "Simulation",
@@ -143,7 +160,7 @@ export const SOLAR_FEATURES = [
     limitations: "No energy-yield calculation is performed in this phase.",
     architecturalRole:
       "Defines provenance and review requirements for a future validated calculation engine.",
-    order: 6,
+    order: 7,
   },
   {
     ...common,
@@ -159,7 +176,7 @@ export const SOLAR_FEATURES = [
     outputs: ["Assumption comparison", "Source references", "Review findings"],
     limitations: "PVsyst report extraction is not implemented in this phase.",
     architecturalRole: "Will connect third-party report evidence to reviewable project records.",
-    order: 7,
+    order: 8,
   },
   {
     ...common,
@@ -175,7 +192,7 @@ export const SOLAR_FEATURES = [
     outputs: ["Change register", "Comparison findings", "Review history"],
     limitations: "Renewable-energy revision comparison is not implemented in this phase.",
     architecturalRole: "Will make changes across shared project records traceable and reviewable.",
-    order: 8,
+    order: 9,
   },
 ] as const satisfies readonly SolarFeature[];
 

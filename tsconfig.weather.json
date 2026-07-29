@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": { "noEmit": true, "types": ["node", "vite/client"] },
+  "include": [
+    "shared/renewableEnergy/weather/**/*.ts",
+    "src/features/renewable-energy/weather/**/*.ts",
+    "src/features/renewable-energy/weather/**/*.tsx",
+    "src/features/renewable-energy/renewableEnergyTypes.ts",
+    "src/features/renewable-energy/solar/solarFeatureCatalog.ts",
+    "scripts/test-weather-*.ts"
+  ]
+}
